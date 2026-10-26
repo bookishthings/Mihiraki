@@ -508,6 +508,15 @@ var opf=xml(await zip.file(opfPath).async('string'));
 var base=opfPath.indexOf('/')>=0?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
 var man={};
 opf.querySelectorAll('manifest > item').forEach(function(it){man[it.getAttribute('id')]=it.getAttribute('href')});
+var cover=null;
+try{
+var items=[].slice.call(opf.querySelectorAll('manifest > item')),ci=null;
+ci=items.filter(function(it){return /(^|\s)cover-image(\s|$)/.test(it.getAttribute('properties')||'')})[0];
+if(!ci){var mc=opf.querySelector('metadata meta[name="cover"]');if(mc){var cid=mc.getAttribute('content');ci=items.filter(function(it){return it.getAttribute('id')===cid})[0]}}
+if(!ci)ci=items.filter(function(it){return /^image\//.test(it.getAttribute('media-type')||'')&&/cover/i.test((it.getAttribute('id')||'')+(it.getAttribute('href')||''))})[0];
+if(ci){var cf=zip.file(decodeURIComponent(new URL(ci.getAttribute('href'),'http://x/'+base).pathname.slice(1)));
+if(cf){var cbuf=await cf.async('arraybuffer');cover=URL.createObjectURL(new Blob([cbuf],{type:ci.getAttribute('media-type')||'image/jpeg'}))}}
+}catch(e){cover=null}
 var te=opf.getElementsByTagNameNS('*','title')[0];
 var book=(te&&te.textContent.trim())||f.name.replace(/\.epub$/i,'');
 var refs=[].slice.call(opf.querySelectorAll('spine > itemref')),out=[];
@@ -526,7 +535,7 @@ if(blocks.join(' ').length<40)continue;
 var h=doc.querySelector('h1,h2,h3');
 var ht=h?tx(h).slice(0,60):'';var title=!ht?('Section '+(out.length+1)):(/^[\dIVXLC]+\.?$/i.test(ht)?'Chapter '+ht:ht);
 var name=String(out.length+1).padStart(2,'0')+' · '+title;
-out.push({name:name,key:book+' / '+name,segs:chunk(blocks),blocks:blocks})}
+out.push({name:name,key:book+' / '+name,segs:chunk(blocks),blocks:blocks,cover:cover})}
 if(!out.length)throw new Error('empty');
 return {book:book,list:out}}
 
