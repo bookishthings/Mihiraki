@@ -191,22 +191,45 @@ li.appendChild(b);li.appendChild(x);ul.appendChild(li)})}
 
 /* ---- read-aloud engine ---- */
 function prog(){if(!seeking)$('seek').value=sIdx;$('cur').textContent='Part '+(sIdx+1);savePos(false)}
-function stopTTS(){tok++;ttsOn=false;if(hasTTS)speechSynthesis.cancel();setPlayIcon()}
+function stopTTS(){tok++;ttsOn=false;clearTimeout(startWd);if(hasTTS)speechSynthesis.cancel();setPlayIcon()}
 function ttsEnded(){ttsOn=false;setPlayIcon();
 if(sleepEnd){sleepEnd=false;$('sleep').value='0';return}
 if(idx<tracks.length-1)load(idx+1,0,true)}
-function speakFrom(i){
-var t=tracks[idx];if(!t||!t.segs||!hasTTS)return;
-speechSynthesis.cancel();
-if(i>=t.segs.length){tok++;ttsEnded();return}
-sIdx=Math.max(0,i);ttsOn=true;var my=++tok;
-var u=new SpeechSynthesisUtterance(t.segs[sIdx]);
+var curU=null,startWd=null;
+function ttsFail(msg){clearTimeout(startWd);tok++;ttsOn=false;if(hasTTS)speechSynthesis.cancel();setPlayIcon();$('msg').textContent=msg}
+function say(my,tries){
+if(my!==tok||!ttsOn)return;
+var t=tracks[idx];if(!t||!t.segs)return;
+var u=new SpeechSynthesisUtterance(t.segs[sIdx]),started=false;
+curU=u; /* keep a reference: Chrome can garbage-collect it and never fire onend */
 var v=voices.filter(function(x){return x.name===$('voice').value})[0];
 if(v){u.voice=v;u.lang=v.lang}
 u.rate=parseFloat($('speed').value);
-u.onend=function(){if(my===tok&&ttsOn)speakFrom(sIdx+1)};
-u.onerror=function(ev){if(my===tok&&ev.error!=='interrupted'&&ev.error!=='canceled'){ttsOn=false;setPlayIcon()}};
-prog();setPlayIcon();speechSynthesis.speak(u)}
+u.onstart=function(){started=true;clearTimeout(startWd)};
+u.onend=function(){if(my===tok&&ttsOn){clearTimeout(startWd);speakFrom(sIdx+1,true)}};
+u.onerror=function(ev){
+if(my!==tok)return;
+if(ev.error==='interrupted'||ev.error==='canceled'){
+if(!started&&tries<2){setTimeout(function(){say(my,tries+1)},150)}
+return}
+ttsFail('Read aloud could not start ('+ev.error+'). Try a different voice from the dropdown.')};
+clearTimeout(startWd);
+startWd=setTimeout(function(){
+if(my!==tok||!ttsOn||started)return;
+if(tries<2){speechSynthesis.cancel();setTimeout(function(){say(my,tries+1)},150)}
+else ttsFail('The browser did not start speaking. Try a different voice from the dropdown, or reload the page.')},4000);
+speechSynthesis.resume();
+speechSynthesis.speak(u)}
+function speakFrom(i,chain){
+var t=tracks[idx];if(!t||!t.segs||!hasTTS)return;
+if(i>=t.segs.length){tok++;ttsEnded();return}
+sIdx=Math.max(0,i);ttsOn=true;var my=++tok;
+prog();setPlayIcon();
+if(chain){say(my,0);return}
+clearTimeout(startWd);
+if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();
+/* a short pause after cancel() stops the new utterance from being silently dropped */
+setTimeout(function(){say(my,0)},80)}
 
 function load(i,at,play){
 if(i<0||i>=tracks.length)return;
