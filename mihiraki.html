@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mihiraki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ece7f4;--ink:#2b1d4a;--mute:#5d4f7e;--card:#f7f4fb;--line:#cdbfe6;--acc:#6b3fb5;--accink:#fff;--paper:#f5f0e4;--pt:#33291f;--desk:#e6dec9;--dot:#9d86cc;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1426;--ink:#ece6f7;--mute:#a597c2;--card:#251c36;--line:#3b2f55;--acc:#b99af0;--accink:#1a1426;--paper:#262019;--pt:#e8dcc6;--desk:#1b1713;--dot:#6f5d99}}
+:root[data-theme="dark"]{--bg:#1a1426;--ink:#ece6f7;--mute:#a597c2;--card:#251c36;--line:#3b2f55;--acc:#b99af0;--accink:#1a1426;--paper:#262019;--pt:#e8dcc6;--desk:#1b1713;--dot:#6f5d99}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Courier Prime','Courier New',monospace;min-height:100vh}
+main{max-width:1200px;margin:0 auto;padding:14px 20px 32px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;padding:0 8px;min-height:44px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+option{background:var(--card);color:var(--ink)}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:56px;position:relative}
+.brand{flex:1;min-width:150px}
+h1{margin:0;font:400 30px 'Special Elite','Courier New',monospace;letter-spacing:.06em}
+.tabs{display:flex;gap:26px}
+.tab{color:var(--mute);border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.06em;font-size:17px}
+.tab[aria-selected=true]{color:var(--acc);border-bottom-color:var(--acc);font-weight:700}
+.acts{flex:1;display:flex;justify-content:flex-end;min-width:220px}
+.grp{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.lnk{text-decoration:underline dotted;text-underline-offset:5px;font-size:15px;color:var(--ink)}
+select.lnk{text-decoration:none;border:0;border-bottom:1px dotted var(--ink);background:transparent;padding:8px 2px;max-width:240px;cursor:pointer}
+.dotc{color:var(--dot)}
+.pop{position:absolute;right:0;top:100%;width:min(420px,calc(100vw - 40px));max-height:60vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 28px rgba(43,29,74,.25);z-index:20;padding:6px 14px}
+.status{text-align:center;color:var(--mute);font-size:14px;min-height:22px;margin:4px 0 10px}
+.hd{margin:0 0 10px;font:400 22px 'Special Elite','Courier New',monospace}
+.cols{display:flex;align-items:flex-start}
+.left{width:46%;display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 48px 8px 0}
+.cover{width:min(320px,70%);aspect-ratio:1;background:var(--acc);color:var(--accink);display:flex;align-items:center;justify-content:center;font:400 72px 'Special Elite',monospace;border-radius:14px;box-shadow:0 14px 32px rgba(43,29,74,.22)}
+.title{font-weight:700;font-size:20px;text-align:center;word-break:break-word;min-height:1.5em}
+.seekw{width:100%}
+input[type=range]{width:100%;accent-color:var(--acc);margin:0}
+.time{display:flex;justify-content:space-between;color:var(--mute);font-size:13px;margin-top:4px}
+.ctl{display:flex;gap:10px;align-items:center;justify-content:center}
+.ctl button{min-width:52px;height:52px;border-radius:50%;font-size:20px}
+.ctl .play{width:68px;height:68px;background:var(--acc);color:var(--accink);font-size:24px;padding:0 0 0 4px}
+.xtra{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center}
+.right{flex:1;border-left:1px solid var(--line);padding-left:48px;display:flex;flex-direction:column;gap:28px;min-width:0}
+textarea{display:block;width:100%;height:132px;font:15px/32px 'Courier Prime','Courier New',monospace;color:var(--ink);background:var(--card) repeating-linear-gradient(transparent,transparent 31px,var(--line) 31px,var(--line) 32px);border:0;border-radius:8px;padding:0 16px;resize:none;margin-bottom:6px}
+.lbl{display:block;color:var(--mute);font-size:13px;margin-bottom:6px;word-break:break-word}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;border-bottom:1px dotted var(--dot)}
+li button.item{flex:1;text-align:left;padding:10px 2px;word-break:break-word;font-size:15px}
+li.on button.item{color:var(--acc);font-weight:700}
+li .x{color:var(--mute);font-size:13px}
+.empty{color:var(--mute);padding:10px 2px;font-size:14px}
+#reader{display:flex;gap:40px;height:calc(100vh - 150px);min-height:480px}
+#sheet{position:relative;flex:1;min-width:0;background:var(--paper);border-radius:6px;box-shadow:0 14px 32px rgba(43,29,74,.2);padding:44px 64px 64px;display:flex;flex-direction:column}
+#page{flex:1;min-height:0;position:relative;overflow:hidden;column-count:2;column-gap:56px;column-fill:auto;color:var(--pt);font:400 1.05rem/1.75 Georgia,'Iowan Old Style',serif;text-align:justify;hyphens:auto}
+#page p{margin:0;text-indent:1.6em;orphans:2;widows:2}
+#page .ch{text-align:center;text-indent:0;font-size:1.25em;font-weight:600;margin:.3em 0 1.3em}
+#page .ch + p{text-indent:0}
+#page mark{color:#2b1d4a;border-radius:3px;padding:0 1px;background:#fdf1b0}
+#page mark.c1{background:#fbcfe0}#page mark.c2{background:#c9f0d9}#page mark.c3{background:#cfe4fb}#page mark.c4{background:#e0d4f7}
+.pgb{position:absolute;top:50%;margin-top:-22px;width:44px;height:44px;font-size:30px;color:var(--mute);padding:0}
+#pgBar{position:absolute;left:64px;right:64px;bottom:18px;display:flex;align-items:center;gap:14px}
+#pgNum{color:var(--mute);font-size:13px;min-width:5em;text-align:right}
+#side{width:320px;flex:none;border-left:1px solid var(--line);padding-left:36px;display:flex;flex-direction:column;gap:22px;overflow:auto}
+.sw{display:flex;gap:10px;margin-bottom:12px}
+.sw button{width:30px;height:30px;min-height:0;border-radius:50%;border:2px solid transparent;padding:0}
+.sw button[aria-pressed=true]{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.pri{background:var(--acc);color:var(--accink);border-radius:999px;padding:0 22px}
+.pri:disabled{opacity:.5;cursor:default}
+#reader.fs{position:fixed;inset:0;z-index:50;background:var(--desk);padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);gap:0;height:auto}
+#reader.fs #side{position:fixed;top:calc(env(safe-area-inset-top,0px) + 20px);right:20px;width:auto;z-index:60;flex-direction:row;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 14px;overflow:visible}
+#reader.fs .hd,#reader.fs #hlSec,#reader.fs #lnkSec{display:none}
+#reader.fs .sw{margin:0}
+@media (max-width:900px){.cols{flex-direction:column}.left,.right{width:100%;padding:0;border:0}.left{margin-bottom:24px}#page{column-count:1}#reader{flex-direction:column;height:auto}#sheet{height:72vh;flex:none;padding:28px 28px 56px}#pgBar{left:28px;right:28px}#side{width:auto;border:0;padding:0}}
+</style>
+</head>
+<body>
+<main>
+<header class="bar">
+<div class="brand"><h1>Mihiraki</h1></div>
+<div class="tabs" role="tablist"><button class="tab" role="tab" id="tabA" aria-selected="true" aria-controls="paneA">Audiobook</button><button class="tab" role="tab" id="tabB" aria-selected="false" aria-controls="paneB">Ebook</button></div>
+<div class="acts">
+<div class="grp" id="actsA"><button class="lnk" id="loadA">Load file</button><span class="dotc" aria-hidden="true">·</span><button class="lnk" id="pickBtn" aria-expanded="false">Pick what to listen to ▾</button>
+<div class="pop" id="pickPanel" hidden><ul id="chapters"><li class="empty">Load a file to see its chapters.</li></ul></div></div>
+<div class="grp" id="actsB" hidden><button class="lnk" id="loadB">Load EPUB</button><span class="dotc" aria-hidden="true">·</span><select class="lnk" id="rChap" aria-label="Pick a chapter"><option>Pick a chapter</option></select></div>
+</div>
+<input id="file" type="file" accept="audio/*,.epub,application/epub+zip" multiple hidden>
+<input id="bookFile" type="file" accept=".epub,application/epub+zip" hidden>
+</header>
+<p class="status" id="msg" aria-live="polite"></p>
+
+<div id="paneA" role="tabpanel" aria-labelledby="tabA">
+<div class="cols">
+<div class="left">
+<div class="cover" aria-hidden="true">♪</div>
+<div class="title" id="title">Nothing loaded yet</div>
+<div class="seekw"><input id="seek" type="range" min="0" max="0" step="1" value="0" aria-label="Seek"><div class="time"><span id="cur">0:00</span><span id="dur">0:00</span></div></div>
+<div class="ctl">
+<button id="prev" aria-label="Previous chapter">«</button><button id="back" aria-label="Back 15 seconds">−15</button><button id="play" class="play" aria-label="Play">▶</button><button id="fwd" aria-label="Forward 30 seconds">+30</button><button id="next" aria-label="Next chapter">»</button>
+</div>
+<div class="xtra">
+<select class="lnk" id="speed" aria-label="Speed"><option value="0.75">Speed 0.75×</option><option value="1" selected>Speed 1×</option><option value="1.25">Speed 1.25×</option><option value="1.5">Speed 1.5×</option><option value="1.75">Speed 1.75×</option><option value="2">Speed 2×</option><option value="2.5">Speed 2.5×</option><option value="3">Speed 3×</option><option value="3.5">Speed 3.5×</option></select><span class="dotc" aria-hidden="true">·</span>
+<select class="lnk" id="sleep" aria-label="Sleep timer"><option value="0">Timer</option><option value="10">10 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="end">End of chapter</option></select><span class="dotc" aria-hidden="true">·</span>
+<button class="lnk" id="addBm">Bookmark</button>
+<label id="voiceWrap" hidden><select class="lnk" id="voice" aria-label="Voice for read aloud"></select></label>
+</div>
+</div>
+<div class="right">
+<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Note for the current chapter</label><textarea id="noteBox" disabled placeholder="Thoughts, quotes or questions for this chapter"></textarea><button class="lnk" id="dlNotes" style="padding-left:0">Download all notes (.txt)</button></div>
+<div><h2 class="hd">Bookmarks</h2><ul id="bms"><li class="empty">No bookmarks yet.</li></ul></div>
+<div><h2 class="hd">Back up your progress</h2><div class="grp" style="justify-content:flex-start"><button class="lnk" id="saveProg" style="padding-left:0">Save progress file</button><button class="lnk" id="loadBtn">Restore from file</button></div><input id="loadProg" type="file" accept=".json,application/json" hidden></div>
+</div>
+</div>
+</div>
+
+<div id="paneB" role="tabpanel" aria-labelledby="tabB" hidden>
+<div id="reader">
+<div id="sheet"><article id="page" tabindex="0" aria-label="Book text"><p style="text-indent:0">Load an EPUB to start reading.</p></article>
+<button class="pgb" id="pgPrev" aria-label="Previous page" style="left:8px">‹</button><button class="pgb" id="pgNext" aria-label="Next page" style="right:8px">›</button>
+<div id="pgBar"><input id="pgSlider" type="range" min="0" max="0" value="0" aria-label="Page"><span id="pgNum">1 / 1</span></div></div>
+<aside id="side" aria-label="Reader tools">
+<div id="viewSec"><h2 class="hd">View</h2><div class="grp" style="justify-content:flex-start;gap:8px"><button class="lnk" id="rSmall" aria-label="Smaller text">A−</button><button class="lnk" id="rBig" aria-label="Larger text">A+</button><button class="lnk" id="rFull" aria-label="Full screen">⛶ Full screen</button></div></div>
+<div id="hlTools"><h2 class="hd">Highlight</h2><div class="sw" id="sw" role="group" aria-label="Highlight color"></div><button class="pri" id="hlBtn" disabled>Highlight selected text</button></div>
+<div id="hlSec"><h2 class="hd">Highlights</h2><ul id="hlList"><li class="empty">No highlights yet.</li></ul></div>
+<div id="lnkSec" style="display:flex;flex-direction:column;align-items:flex-start"><button class="lnk" id="dlHl" style="padding-left:0">Download highlights</button><button class="lnk" id="listenBtn" style="padding-left:0">Listen to this book</button></div>
+<div hidden><div id="bookTitle"></div><button id="rPrev"></button><button id="rNext"></button></div>
+</aside>
+</div>
+</div>
+</main>
+<audio id="a" preload="metadata"></audio>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+var a=document.getElementById('a'),$=function(i){return document.getElementById(i)};
+var tracks=[],idx=-1,bms=[],notes={},sleepTimer=null,sleepEnd=false,lastSave=0,sIdx=0,ttsOn=false,tok=0,seeking=false,voices=[];
+var hasTTS='speechSynthesis' in window;
+function st(k,v){try{if(v===undefined){var r=localStorage.getItem('ab:'+k);return r?JSON.parse(r):null}localStorage.setItem('ab:'+k,JSON.stringify(v))}catch(e){return null}}
+bms=st('bms')||[];notes=st('notes')||{};
+
+function tts(){return idx>=0&&!!tracks[idx].segs}
+function curPos(){return tts()?sIdx:Math.floor(a.currentTime)}
+function savePos(force){var n=Date.now();if(idx<0||(!tts()&&a.currentTime<=0)||(!force&&n-lastSave<3000))return;lastSave=n;st('pos',{n:tracks[idx].key,s:curPos()})}
+function fmt(s){s=Math.max(0,Math.floor(s||0));var h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
+return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')}
+function lab(u,s){return u?'part '+(s+1):fmt(s)}
+function nm(f){return f.name.replace(/\.[^.]+$/,'')}
+function playing(){return tts()?ttsOn:!a.paused}
+function setPlayIcon(){var p=playing();$('play').textContent=p?'⏸':'▶';$('play').setAttribute('aria-label',p?'Pause':'Play')}
+
+function renderChapters(){
+var ul=$('chapters');ul.innerHTML='';
+if(!tracks.length){ul.innerHTML='<li class="empty">Files you choose will appear here.</li>';return}
+tracks.forEach(function(t,i){
+var li=document.createElement('li');if(i===idx)li.className='on';
+var b=document.createElement('button');b.className='item';b.textContent=t.name;
+b.onclick=function(){load(i,0,true);closePick()};li.appendChild(b);ul.appendChild(li)})}
+
+function renderBms(){
+var ul=$('bms');ul.innerHTML='';
+if(!bms.length){ul.innerHTML='<li class="empty">No bookmarks yet.</li>';return}
+bms.forEach(function(m,i){
+var li=document.createElement('li');
+var b=document.createElement('button');b.className='item';
+b.textContent=m.n+' at '+lab(m.u,m.s);
+b.onclick=function(){
+var k=-1;tracks.forEach(function(t,j){if(t.key===m.n)k=j});
+if(k<0){$('msg').textContent='Choose the file for this chapter first: '+m.n;return}
+$('msg').textContent='';load(k,m.s,true)};
+var x=document.createElement('button');x.className='x';x.textContent='Remove';x.setAttribute('aria-label','Remove bookmark');
+x.onclick=function(){bms.splice(i,1);st('bms',bms);renderBms()};
+li.appendChild(b);li.appendChild(x);ul.appendChild(li)})}
+
+/* ---- read-aloud engine ---- */
+function prog(){if(!seeking)$('seek').value=sIdx;$('cur').textContent='Part '+(sIdx+1);savePos(false)}
+function stopTTS(){tok++;ttsOn=false;if(hasTTS)speechSynthesis.cancel();setPlayIcon()}
+function ttsEnded(){ttsOn=false;setPlayIcon();
+if(sleepEnd){sleepEnd=false;$('sleep').value='0';return}
+if(idx<tracks.length-1)load(idx+1,0,true)}
+function speakFrom(i){
+var t=tracks[idx];if(!t||!t.segs||!hasTTS)return;
+speechSynthesis.cancel();
+if(i>=t.segs.length){tok++;ttsEnded();return}
+sIdx=Math.max(0,i);ttsOn=true;var my=++tok;
+var u=new SpeechSynthesisUtterance(t.segs[sIdx]);
+var v=voices.filter(function(x){return x.name===$('voice').value})[0];
+if(v){u.voice=v;u.lang=v.lang}
+u.rate=parseFloat($('speed').value);
+u.onend=function(){if(my===tok&&ttsOn)speakFrom(sIdx+1)};
+u.onerror=function(ev){if(my===tok&&ev.error!=='interrupted'&&ev.error!=='canceled'){ttsOn=false;setPlayIcon()}};
+prog();setPlayIcon();speechSynthesis.speak(u)}
+
+function load(i,at,play){
+if(i<0||i>=tracks.length)return;
+stopTTS();a.pause();
+idx=i;var t=tracks[i],isT=!!t.segs;
+$('title').textContent=t.name;
+$('noteFor').textContent='Note for '+t.name;$('noteBox').disabled=false;$('noteBox').value=notes[t.key]||'';
+$('voiceWrap').hidden=!isT;
+$('back').textContent=isT?'−3':'−15';$('fwd').textContent=isT?'+3':'+30';
+$('back').setAttribute('aria-label',isT?'Back 3 parts':'Back 15 seconds');
+$('fwd').setAttribute('aria-label',isT?'Forward 3 parts':'Forward 30 seconds');
+if(isT){
+a.removeAttribute('src');a.load();
+sIdx=Math.min(at||0,t.segs.length-1);
+$('seek').max=t.segs.length-1;$('seek').value=sIdx;
+$('dur').textContent='of '+t.segs.length;$('cur').textContent='Part '+(sIdx+1);
+if(play)speakFrom(sIdx);
+}else{
+a.src=t.url;a.playbackRate=parseFloat($('speed').value);
+a.onloadedmetadata=function(){if(at)a.currentTime=at;a.onloadedmetadata=null};
+if(play)a.play().catch(function(){});
+}
+renderChapters();setPlayIcon()}
+
+function setTracks(list){
+stopTTS();a.pause();
+tracks.forEach(function(t){if(t.url)URL.revokeObjectURL(t.url)});
+tracks=list;idx=-1;
+var p=st('pos'),start=0,at=0;
+if(p)tracks.forEach(function(t,k){if(t.key===p.n){start=k;at=p.s}});
+load(start,at,false);renderBms();
+$('msg').textContent=at?'Picked up where you left off: '+tracks[start].name+'.':''}
+
+/* ---- loading files ---- */
+$('file').addEventListener('change',function(e){
+var files=Array.prototype.slice.call(e.target.files).sort(function(x,y){return x.name.localeCompare(y.name,undefined,{numeric:true})});
+if(!files.length)return;
+var ep=files.filter(function(f){return /\.epub$/i.test(f.name)})[0];
+if(ep){loadEpubTTS(ep);return}
+setTracks(files.map(function(f){var n=nm(f);return{name:n,key:n,url:URL.createObjectURL(f)}}));
+$('msg').textContent=files.length+' file'+(files.length>1?'s':'')+' loaded.'});
+
+function chunk(bl){var r=[];
+bl.forEach(function(b){
+if(b.length<=240){r.push(b);return}
+var ss=b.match(/[^.!?]+[.!?]+["'\u201d\u2019)\]]*\s*|[^.!?]+$/g)||[b],cur='';
+ss.forEach(function(s){
+if(cur&&(cur+s).length>240){r.push(cur.trim());cur=''}
+cur+=s;
+while(cur.length>400){r.push(cur.slice(0,400));cur=cur.slice(400)}});
+if(cur.trim())r.push(cur.trim())});
+return r}
+
+async function parseEpub(f){
+var zip=await JSZip.loadAsync(f);
+var xml=function(s){return new DOMParser().parseFromString(s,'application/xml')};
+var cont=xml(await zip.file('META-INF/container.xml').async('string'));
+var opfPath=cont.querySelector('rootfile').getAttribute('full-path');
+var opf=xml(await zip.file(opfPath).async('string'));
+var base=opfPath.indexOf('/')>=0?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
+var man={};
+opf.querySelectorAll('manifest > item').forEach(function(it){man[it.getAttribute('id')]=it.getAttribute('href')});
+var te=opf.getElementsByTagNameNS('*','title')[0];
+var book=(te&&te.textContent.trim())||f.name.replace(/\.epub$/i,'');
+var refs=[].slice.call(opf.querySelectorAll('spine > itemref')),out=[];
+var tx=function(el){return el.textContent.replace(/\s+/g,' ').trim()};
+for(var i=0;i<refs.length;i++){
+var href=man[refs[i].getAttribute('idref')];if(!href)continue;
+var path=decodeURIComponent(new URL(href,'http://x/'+base).pathname.slice(1));
+var zf=zip.file(path);if(!zf)continue;
+var doc=new DOMParser().parseFromString(await zf.async('string'),'text/html');
+if(!doc.body)continue;
+doc.querySelectorAll('script,style').forEach(function(n){n.remove()});
+var blocks=[].slice.call(doc.body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li'))
+.filter(function(el){return !(el.tagName==='LI'&&el.querySelector('p'))}).map(tx).filter(Boolean);
+if(!blocks.length)blocks=doc.body.textContent.split(/\n+/).map(function(s){return s.replace(/\s+/g,' ').trim()}).filter(Boolean);
+if(blocks.join(' ').length<40)continue;
+var h=doc.querySelector('h1,h2,h3');
+var ht=h?tx(h).slice(0,60):'';var title=!ht?('Section '+(out.length+1)):(/^[\dIVXLC]+\.?$/i.test(ht)?'Chapter '+ht:ht);
+var name=String(out.length+1).padStart(2,'0')+' · '+title;
+out.push({name:name,key:book+' / '+name,segs:chunk(blocks),blocks:blocks})}
+if(!out.length)throw new Error('empty');
+return {book:book,list:out}}
+
+async function loadEpubTTS(f){
+if(!hasTTS){$('msg').textContent='This browser has no read-aloud support.';return}
+if(!window.JSZip){$('msg').textContent='Could not load the EPUB reader. Check your connection and reload.';return}
+$('msg').textContent='Reading EPUB…';
+try{var r=await parseEpub(f);setTracks(r.list);
+$('msg').textContent=r.book+' loaded ('+r.list.length+' sections).'}
+catch(err){$('msg').textContent='Could not read that EPUB. DRM-protected books will not work.'}}
+
+/* ---- voices ---- */
+function loadVoices(){
+if(!hasTTS)return;
+voices=speechSynthesis.getVoices();
+var s=$('voice'),sv=st('voice')||'',lang=(navigator.language||'en').slice(0,2);
+s.innerHTML='';
+voices.slice().sort(function(x,y){return ((y.lang.indexOf(lang)===0)-(x.lang.indexOf(lang)===0))||x.name.localeCompare(y.name)})
+.forEach(function(v){var o=document.createElement('option');o.value=v.name;o.textContent=v.name+' ('+v.lang+')';s.appendChild(o)});
+if(sv&&voices.some(function(v){return v.name===sv}))s.value=sv}
+if(hasTTS){speechSynthesis.onvoiceschanged=loadVoices;loadVoices()}
+$('voice').onchange=function(){st('voice',this.value);if(ttsOn)speakFrom(sIdx)};
+
+/* ---- controls ---- */
+$('play').onclick=function(){
+if(idx<0)return;
+if(tts()){if(ttsOn){stopTTS();savePos(true)}else speakFrom(sIdx)}
+else a.paused?a.play():a.pause()};
+a.addEventListener('play',setPlayIcon);
+a.addEventListener('pause',function(){setPlayIcon();savePos(true)});
+$('back').onclick=function(){
+if(tts()){var n=Math.max(0,sIdx-3);if(ttsOn)speakFrom(n);else{sIdx=n;prog()}}
+else a.currentTime=Math.max(0,a.currentTime-15)};
+$('fwd').onclick=function(){
+if(tts()){var n=Math.min(tracks[idx].segs.length-1,sIdx+3);if(ttsOn)speakFrom(n);else{sIdx=n;prog()}}
+else a.currentTime=Math.min(a.duration||1e9,a.currentTime+30)};
+$('prev').onclick=function(){
+var restart=tts()?sIdx>0:a.currentTime>3;
+if(restart){if(tts()){if(ttsOn)speakFrom(0);else{sIdx=0;prog()}}else a.currentTime=0}
+else load(idx-1,0,playing())};
+$('next').onclick=function(){load(idx+1,0,playing())};
+$('speed').onchange=function(){a.playbackRate=parseFloat(this.value);if(ttsOn)speakFrom(sIdx)};
+
+a.addEventListener('timeupdate',function(){
+if(tts())return;
+if(!seeking){$('seek').value=a.currentTime}
+$('cur').textContent=fmt(a.currentTime);savePos(false)});
+a.addEventListener('durationchange',function(){
+if(tts())return;
+$('seek').max=a.duration||0;$('dur').textContent=fmt(a.duration)});
+$('seek').addEventListener('input',function(){seeking=true;$('cur').textContent=tts()?'Part '+(parseInt(this.value,10)+1):fmt(this.value)});
+$('seek').addEventListener('change',function(){
+seeking=false;
+if(tts()){var v=parseInt(this.value,10);if(ttsOn)speakFrom(v);else{sIdx=v;prog()}}
+else a.currentTime=parseFloat(this.value)});
+
+a.addEventListener('ended',function(){
+if(sleepEnd){sleepEnd=false;$('sleep').value='0';return}
+if(idx<tracks.length-1)load(idx+1,0,true)});
+
+$('sleep').onchange=function(){
+clearTimeout(sleepTimer);sleepEnd=false;var v=this.value;
+if(v==='end'){sleepEnd=true}
+else if(v!=='0'){sleepTimer=setTimeout(function(){a.pause();stopTTS();savePos(true);$('sleep').value='0'},parseInt(v,10)*60000)}};
+
+$('addBm').onclick=function(){
+if(idx<0)return;
+bms.push({n:tracks[idx].key,s:curPos(),u:tts()?1:0});st('bms',bms);renderBms()};
+
+document.addEventListener('keydown',function(e){
+if(e.target.tagName==='TEXTAREA'||!$('paneB').hidden)return;
+if(/INPUT|SELECT|BUTTON/.test(e.target.tagName)&&e.key===' ')return;
+if(e.key===' '){e.preventDefault();$('play').click()}
+if(e.key==='ArrowLeft')$('back').click();
+if(e.key==='ArrowRight')$('fwd').click()});
+
+/* ---- notes, export, backup ---- */
+$('noteBox').addEventListener('input',function(){
+if(idx<0)return;var n=tracks[idx].key;
+if(this.value)notes[n]=this.value;else delete notes[n];
+st('notes',notes)});
+
+function saveFile(name,text,mime,label){
+var get=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);
+get.then(function(d){
+if(d){return d.save({filename:name,data:text}).then(
+function(){$('msg').textContent=label+' saved.'},
+function(e){$('msg').textContent=(e&&e.code==='declined')?'Download cancelled.':'Could not save. Try again.'})}
+var u=URL.createObjectURL(new Blob([text],{type:mime}));
+var l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();
+setTimeout(function(){URL.revokeObjectURL(u)},1000);
+$('msg').textContent=label+' saved.'
+}).catch(function(){$('msg').textContent='Could not save. Try again.'})}
+
+$('dlNotes').onclick=function(){
+var names=Object.keys(notes);
+if(!names.length){$('msg').textContent='No notes to download yet.';return}
+var order=tracks.map(function(t){return t.key});
+names.sort(function(x,y){var i=order.indexOf(x),j=order.indexOf(y);if(i<0)i=1e9;if(j<0)j=1e9;return (i-j)||x.localeCompare(y,undefined,{numeric:true})});
+var txt=names.map(function(n){return n+'\n'+'-'.repeat(n.length)+'\n'+notes[n]}).join('\n\n')+'\n';
+saveFile('audiobook-notes.txt',txt,'text/plain','Notes')};
+
+$('saveProg').onclick=function(){
+savePos(true);
+saveFile('audiobook-progress.json',JSON.stringify({app:'audiobook-player',v:3,bms:bms,notes:notes,pos:st('pos'),hl:hl,rpos:st('rpos')},null,2),'application/json','Progress file')};
+
+$('loadBtn').onclick=function(){$('loadProg').click()};
+$('loadProg').addEventListener('change',function(e){
+var f=e.target.files[0];e.target.value='';if(!f)return;
+var r=new FileReader();
+r.onload=function(){try{
+var d=JSON.parse(r.result);if(!d||d.app!=='audiobook-player')throw 0;
+bms=Array.isArray(d.bms)?d.bms:[];notes=(d.notes&&typeof d.notes==='object')?d.notes:{};
+st('bms',bms);st('notes',notes);if(d.pos)st('pos',d.pos);if(d.hl&&typeof d.hl==='object'){hl=d.hl;st('hl',hl)}if(d.rpos)st('rpos',d.rpos);refreshReader();
+renderBms();
+if(idx>=0)$('noteBox').value=notes[tracks[idx].key]||'';
+var k=-1;if(d.pos)tracks.forEach(function(t,j){if(t.key===d.pos.n)k=j});
+if(k>=0)load(k,d.pos.s,false);
+$('msg').textContent='Progress restored.'+(tracks.length?'':' Now choose your files to continue where you left off.');
+}catch(err){$('msg').textContent='That file is not a progress file from this player.'}};
+r.readAsText(f)});
+
+/* ---- tabs ---- */
+var anc=0;
+function tab(w){var A=w==='a';if(!$('paneB').hidden&&book)anc=anchor();$('paneA').hidden=!A;$('paneB').hidden=A;$('actsA').hidden=!A;$('actsB').hidden=A;$('tabA').setAttribute('aria-selected',A);$('tabB').setAttribute('aria-selected',!A);if(!A)closePick();if(!A&&book)showChapter(curCh,anc)}
+$('tabA').onclick=function(){tab('a')};$('tabB').onclick=function(){tab('b')};
+
+/* ---- ebook reader + highlights ---- */
+var hl=st('hl')||{},book=null,bk='',curCh=0,pend=null,fz=st('fz')||1.05,wantLast=false,wl=0;
+var COLORS=['#fdf1b0','#fbcfe0','#c9f0d9','#cfe4fb','#e0d4f7'],CNAMES=['Yellow','Pink','Mint','Blue','Lavender'],hc=st('hc')||0;
+function drawSw(){var s=$('sw');s.innerHTML='';COLORS.forEach(function(c,i){var b=document.createElement('button');b.style.background=c;b.setAttribute('aria-label',CNAMES[i]+' highlight');b.setAttribute('aria-pressed',i===hc?'true':'false');b.onclick=function(){hc=i;st('hc',hc);drawSw()};s.appendChild(b)})}
+drawSw();
+$('page').style.fontSize=fz+'rem';
+function chIdx(name){var k=-1;if(book)book.list.forEach(function(c,i){if(c.name===name)k=i});return k}
+function updHlBtn(){$('hlBtn').disabled=!pend}
+function paintP(el,text,rs){
+var pos=0;
+rs.forEach(function(r){
+if(r.s>pos)el.appendChild(document.createTextNode(text.slice(pos,r.s)));
+var m=document.createElement('mark');m.className='c'+(r.k||0);m.textContent=text.slice(r.s,r.e);el.appendChild(m);pos=r.e});
+if(pos<text.length)el.appendChild(document.createTextNode(text.slice(pos)))}
+function isFs(){return true}
+function gapOf(){return parseFloat(getComputedStyle($('page')).columnGap)||0}
+function stepW(){return $('page').clientWidth+gapOf()}
+function total(){return Math.max(1,Math.ceil(($('page').scrollWidth-1)/stepW()))}
+function spread(){return Math.round($('page').scrollLeft/stepW())}
+function updPg(){if(!isFs())return;var t=total();$('pgSlider').max=t-1;$('pgSlider').value=spread();$('pgNum').textContent=(spread()+1)+' / '+t}
+function goSpread(k){k=Math.max(0,Math.min(total()-1,k));$('page').scrollLeft=k*stepW();updPg()}
+function anchor(){var p=$('page'),els=p.querySelectorAll('[data-p]'),f=isFs(),pos=f?p.scrollLeft:p.scrollTop;
+for(var i=0;i<els.length;i++){var e2=els[i],end=f?e2.offsetLeft+e2.offsetWidth:e2.offsetTop+e2.offsetHeight;if(end>pos+2)return parseInt(e2.dataset.p,10)}return 0}
+function showChapter(ci,scrollP){
+if(!book)return;
+curCh=Math.max(0,Math.min(book.list.length-1,ci));
+var ch=book.list[curCh],page=$('page');page.textContent='';
+var hd=document.createElement('div');hd.className='ch';hd.textContent=ch.name.replace(/^\d+\s·\s/,'');page.appendChild(hd);
+var rs=(hl[bk]||[]).filter(function(h){return h.c===ch.name});
+ch.blocks.forEach(function(t,i){
+var p=document.createElement('p');p.dataset.p=i;
+paintP(p,t,rs.filter(function(h){return h.p===i}).sort(function(x,y){return x.s-y.s}));
+page.appendChild(p)});
+page.scrollTop=0;page.scrollLeft=0;$('rChap').value=String(curCh);pend=null;updHlBtn();
+st('rpos',{b:bk,c:ch.name});
+var tp=(scrollP!=null)?page.querySelector('[data-p="'+scrollP+'"]'):null;
+if(tp){if(isFs())goSpread(Math.floor(tp.offsetLeft/stepW()));else tp.scrollIntoView({block:'center'})}
+if(wantLast){wantLast=false;goSpread(1e6)}
+updPg()}
+function repaint(){var p=$('page'),y=p.scrollTop,x=p.scrollLeft;showChapter(curCh);p.scrollTop=y;p.scrollLeft=x;updPg()}
+function hlSorted(){return (hl[bk]||[]).slice().sort(function(x,y){return (chIdx(x.c)-chIdx(y.c))||(x.p-y.p)||(x.s-y.s)})}
+function renderHl(){
+var ul=$('hlList');ul.innerHTML='';
+var arr=hlSorted();
+if(!arr.length){ul.innerHTML='<li class="empty">Select text in the book, then tap “Highlight selected text”.</li>';return}
+arr.forEach(function(h){
+var li=document.createElement('li');
+var b=document.createElement('button');b.className='item';
+li.style.borderLeft='8px solid '+COLORS[h.k||0];
+b.textContent=h.c+': '+(h.t.length>140?h.t.slice(0,140)+'…':h.t);
+b.onclick=function(){var ci=chIdx(h.c);if(ci>=0)showChapter(ci,h.p)};
+var x=document.createElement('button');x.className='x';x.textContent='Remove';x.setAttribute('aria-label','Remove highlight');
+x.onclick=function(){hl[bk]=(hl[bk]||[]).filter(function(z){return z!==h});st('hl',hl);repaint();renderHl()};
+li.appendChild(b);li.appendChild(x);ul.appendChild(li)})}
+function refreshReader(){if(book){showChapter(curCh);renderHl()}}
+
+function readSel(){
+var sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return null;
+var rg=sel.getRangeAt(0),page=$('page');
+if(!page.contains(rg.commonAncestorContainer))return null;
+var out=[];
+[].forEach.call(page.children,function(el){
+if(el.dataset.p==null||!rg.intersectsNode(el))return;
+var txt=el.textContent,s=0,e=txt.length;
+if(el.contains(rg.startContainer)){var r1=document.createRange();r1.selectNodeContents(el);r1.setEnd(rg.startContainer,rg.startOffset);s=r1.toString().length}
+if(el.contains(rg.endContainer)){var r2=document.createRange();r2.selectNodeContents(el);r2.setEnd(rg.endContainer,rg.endOffset);e=r2.toString().length}
+if(e>s&&txt.slice(s,e).trim())out.push({p:parseInt(el.dataset.p,10),s:s,e:e})});
+return out.length?out:null}
+document.addEventListener('selectionchange',function(){var s=readSel();if(s){pend=s;updHlBtn()}});
+$('page').addEventListener('pointerdown',function(){pend=null;updHlBtn()});
+
+$('hlBtn').onclick=function(){
+if(!pend||!book)return;
+var ch=book.list[curCh],arr=hl[bk]=hl[bk]||[];
+pend.forEach(function(q){
+var ms=q.s,me=q.e;
+arr=arr.filter(function(h){if(h.c===ch.name&&h.p===q.p&&h.s<=me&&h.e>=ms){ms=Math.min(ms,h.s);me=Math.max(me,h.e);return false}return true});
+arr.push({c:ch.name,p:q.p,s:ms,e:me,k:hc,t:ch.blocks[q.p].slice(ms,me)})});
+hl[bk]=arr;st('hl',hl);
+var sel=window.getSelection();if(sel)sel.removeAllRanges();
+pend=null;repaint();renderHl()};
+
+$('bookFile').addEventListener('change',async function(e){
+var f=e.target.files[0];e.target.value='';if(!f)return;
+if(!window.JSZip){$('msg').textContent='Could not load the EPUB reader. Check your connection and reload.';return}
+$('msg').textContent='Reading EPUB…';
+try{
+var r=await parseEpub(f);
+book=r;bk=r.book;
+$('rChap').innerHTML='';
+r.list.forEach(function(c,i){var o=document.createElement('option');o.value=String(i);o.textContent=c.name;$('rChap').appendChild(o)});
+$('bookTitle').textContent=r.book;$('reader').hidden=false;
+var rp=st('rpos'),ci=(rp&&rp.b===bk)?chIdx(rp.c):0;
+showChapter(ci>=0?ci:0);renderHl();
+$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters).'
+}catch(err){$('msg').textContent='Could not read that EPUB. DRM-protected books will not work.'}});
+
+$('rChap').onchange=function(){showChapter(parseInt(this.value,10))};
+$('rPrev').onclick=function(){showChapter(curCh-1)};
+$('rNext').onclick=function(){showChapter(curCh+1)};
+function setFz(d){var a1=book?anchor():0;fz=Math.round(Math.max(.85,Math.min(1.8,fz+d))*100)/100;$('page').style.fontSize=fz+'rem';st('fz',fz);if(book)showChapter(curCh,a1)}
+$('rSmall').onclick=function(){setFz(-.1)};$('rBig').onclick=function(){setFz(.1)};
+$('listenBtn').onclick=function(){if(!book)return;fs(false);setTracks(book.list);tab('a')};
+
+function fs(on){
+var r=$('reader'),a1=book?anchor():0;r.classList.toggle('fs',on);
+document.body.style.overflow=on?'hidden':'';
+$('rFull').textContent=on?'✕ Exit':'⛶ Full screen';
+$('rFull').setAttribute('aria-label',on?'Exit full screen':'Full screen');
+try{
+if(on&&document.documentElement.requestFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(function(){});
+if(!on&&document.fullscreenElement)document.exitFullscreen()
+}catch(e){}
+if(book)showChapter(curCh,a1)}
+$('rFull').onclick=function(){fs(!$('reader').classList.contains('fs'))};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('reader').classList.contains('fs'))fs(false)});
+document.addEventListener('fullscreenchange',function(){if(!document.fullscreenElement&&$('reader').classList.contains('fs'))fs(false)});
+
+function pgNext(){if(!book)return;if(spread()<total()-1)goSpread(spread()+1);else if(curCh<book.list.length-1)showChapter(curCh+1)}
+function pgPrev(){if(!book)return;if(spread()>0)goSpread(spread()-1);else if(curCh>0){wantLast=true;showChapter(curCh-1)}}
+$('pgNext').onclick=pgNext;$('pgPrev').onclick=pgPrev;
+$('pgSlider').oninput=function(){goSpread(parseInt(this.value,10))};
+$('page').addEventListener('wheel',function(e){
+if(!isFs())return;e.preventDefault();
+var n=Date.now();if(n-wl<350)return;wl=n;
+(e.deltaY>0||e.deltaX>0)?pgNext():pgPrev()},{passive:false});
+document.addEventListener('keydown',function(e){
+if($('paneB').hidden||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;
+var k=e.key;
+if(k===' '&&e.target.tagName==='BUTTON')return;
+if(k==='ArrowRight'||k==='PageDown'||k===' '){e.preventDefault();pgNext()}
+else if(k==='ArrowLeft'||k==='PageUp'){e.preventDefault();pgPrev()}});
+var rz=null,ra=0;
+window.addEventListener('resize',function(){
+if($('paneB').hidden||!book)return;
+if(rz===null)ra=anchor();
+clearTimeout(rz);rz=setTimeout(function(){rz=null;showChapter(curCh,ra)},150)});
+
+$('dlHl').onclick=function(){
+var arr=hlSorted();
+if(!arr.length){$('msg').textContent='No highlights to download yet.';return}
+var out=[bk,'='.repeat(bk.length)],last='';
+arr.forEach(function(h){if(h.c!==last){last=h.c;out.push('',h.c,'-'.repeat(h.c.length))}out.push('• '+h.t)});
+var fn=(bk.replace(/[^\w\- ]+/g,'').trim().slice(0,50)||'book')+' highlights.txt';
+saveFile(fn,out.join('\n')+'\n','text/plain','Highlights')};
+
+function closePick(){$('pickPanel').hidden=true;$('pickBtn').setAttribute('aria-expanded','false')}
+$('pickBtn').onclick=function(){var o=$('pickPanel').hidden;$('pickPanel').hidden=!o;this.setAttribute('aria-expanded',o?'true':'false')};
+document.addEventListener('click',function(e){if(!$('pickPanel').hidden&&!e.target.closest('#actsA'))closePick()});
+$('loadA').onclick=function(){$('file').click()};
+$('loadB').onclick=function(){$('bookFile').click()};
+renderBms();
+})();
+</script>
+</body>
+</html>
