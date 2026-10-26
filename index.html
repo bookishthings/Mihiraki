@@ -37,6 +37,8 @@ select.lnk{text-decoration:none;border:0;border-bottom:1px dotted var(--ink);bac
 .cols{display:flex;align-items:flex-start}
 .left{width:46%;display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 48px 8px 0}
 .cover{width:min(320px,70%);aspect-ratio:1;background:var(--acc);color:var(--accink);display:flex;align-items:center;justify-content:center;font:400 72px 'Special Elite',monospace;border-radius:14px;box-shadow:0 14px 32px rgba(43,29,74,.22)}
+.cover.art{background:var(--card);overflow:hidden}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
 .title{font-weight:700;font-size:20px;text-align:center;word-break:break-word;min-height:1.5em}
 .seekw{width:100%}
 input[type=range]{width:100%;accent-color:var(--acc);margin:0}
@@ -84,9 +86,9 @@ li .x{color:var(--mute);font-size:13px}
 <div class="brand"><h1>Mihiraki</h1></div>
 <div class="tabs" role="tablist"><button class="tab" role="tab" id="tabA" aria-selected="true" aria-controls="paneA">Audiobook</button><button class="tab" role="tab" id="tabB" aria-selected="false" aria-controls="paneB">Ebook</button></div>
 <div class="acts">
-<div class="grp" id="actsA"><button class="lnk" id="loadA">Load file</button><span class="dotc" aria-hidden="true">·</span><button class="lnk" id="pickBtn" aria-expanded="false">Pick what to listen to ▾</button>
-<div class="pop" id="pickPanel" hidden><ul id="chapters"><li class="empty">Load a file to see its chapters.</li></ul></div></div>
-<div class="grp" id="actsB" hidden><button class="lnk" id="loadB">Load EPUB</button><span class="dotc" aria-hidden="true">·</span><select class="lnk" id="rChap" aria-label="Pick a chapter"><option>Pick a chapter</option></select></div>
+<div class="grp" id="actsA"><button class="lnk" id="loadA">Select a book</button><span class="dotc" aria-hidden="true">·</span><button class="lnk" id="pickBtn" aria-expanded="false" aria-haspopup="true">Select a chapter ▾</button>
+<div class="pop" id="pickPanel" hidden><ul id="chapters"><li class="empty">Select a book to see its chapters.</li></ul></div></div>
+<div class="grp" id="actsB" hidden><button class="lnk" id="loadB">Select a book</button><span class="dotc" aria-hidden="true">·</span><select class="lnk" id="rChap" aria-label="Select a chapter"><option>Select a chapter</option></select></div>
 </div>
 <input id="file" type="file" accept="audio/*,.epub,application/epub+zip" multiple hidden>
 <input id="bookFile" type="file" accept=".epub,application/epub+zip" hidden>
@@ -142,9 +144,16 @@ var hasTTS='speechSynthesis' in window;
 function st(k,v){try{if(v===undefined){var r=localStorage.getItem('ab:'+k);return r?JSON.parse(r):null}localStorage.setItem('ab:'+k,JSON.stringify(v))}catch(e){return null}}
 bms=st('bms')||[];notes=st('notes')||{};
 
+function setCover(u){var c=document.querySelector('.cover');c.textContent='';
+if(u){var im=document.createElement('img');im.src=u;im.alt='';c.appendChild(im);c.classList.add('art')}
+else{c.textContent='♪';c.classList.remove('art')}}
 function tts(){return idx>=0&&!!tracks[idx].segs}
-function curPos(){return tts()?sIdx:Math.floor(a.currentTime)}
-function savePos(force){var n=Date.now();if(idx<0||(!tts()&&a.currentTime<=0)||(!force&&n-lastSave<3000))return;lastSave=n;st('pos',{n:tracks[idx].key,s:curPos()})}
+function cs(){var t=tracks[idx];return (t&&t.start)||0}
+function ce(){var t=tracks[idx];return (t&&t.end!=null)?t.end:(a.duration||0)}
+function rel(){return Math.max(0,a.currentTime-cs())}
+function sameSrc(i){var t=tracks[i];return idx>=0&&idx!==i&&tracks[idx].url&&t.url&&tracks[idx].url===t.url&&a.getAttribute('src')===t.url}
+function curPos(){return tts()?sIdx:Math.floor(rel())}
+function savePos(force){var n=Date.now();if(idx<0||(!tts()&&rel()<=0)||(!force&&n-lastSave<3000))return;lastSave=n;st('pos',{n:tracks[idx].key,s:curPos()})}
 function fmt(s){s=Math.max(0,Math.floor(s||0));var h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
 return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')}
 function lab(u,s){return u?'part '+(s+1):fmt(s)}
@@ -154,11 +163,12 @@ function setPlayIcon(){var p=playing();$('play').textContent=p?'⏸':'▶';$('pl
 
 function renderChapters(){
 var ul=$('chapters');ul.innerHTML='';
-if(!tracks.length){ul.innerHTML='<li class="empty">Files you choose will appear here.</li>';return}
+if(!tracks.length){ul.innerHTML='<li class="empty">Select a book to see its chapters.</li>';return}
 tracks.forEach(function(t,i){
 var li=document.createElement('li');if(i===idx)li.className='on';
 var b=document.createElement('button');b.className='item';b.textContent=t.name;
-b.onclick=function(){load(i,0,true);closePick()};li.appendChild(b);ul.appendChild(li)})}
+b.onclick=function(){closePick();load(i,0,true)};li.appendChild(b);ul.appendChild(li)});
+var cur=ul.querySelector('li.on');if(cur&&!$('pickPanel').hidden)cur.scrollIntoView({block:'nearest'})}
 
 function renderBms(){
 var ul=$('bms');ul.innerHTML='';
@@ -196,9 +206,10 @@ prog();setPlayIcon();speechSynthesis.speak(u)}
 
 function load(i,at,play){
 if(i<0||i>=tracks.length)return;
-stopTTS();a.pause();
+var keep=!tracks[i].segs&&sameSrc(i);
+stopTTS();if(!keep)a.pause();
 idx=i;var t=tracks[i],isT=!!t.segs;
-$('title').textContent=t.name;
+$('title').textContent=t.name;setCover(t.cover||null);
 $('noteFor').textContent='Note for '+t.name;$('noteBox').disabled=false;$('noteBox').value=notes[t.key]||'';
 $('voiceWrap').hidden=!isT;
 $('back').textContent=isT?'−3':'−15';$('fwd').textContent=isT?'+3':'+30';
@@ -210,30 +221,227 @@ sIdx=Math.min(at||0,t.segs.length-1);
 $('seek').max=t.segs.length-1;$('seek').value=sIdx;
 $('dur').textContent='of '+t.segs.length;$('cur').textContent='Part '+(sIdx+1);
 if(play)speakFrom(sIdx);
+}else if(keep){
+a.playbackRate=parseFloat($('speed').value);
+if(at!==-1){a.currentTime=cs()+(at||0);$('seek').value=at||0;$('cur').textContent=fmt(at||0)}
+var d=ce()-cs();$('seek').max=d>0?d:0;$('dur').textContent=fmt(d);
+if(play&&a.paused)a.play().catch(function(){});
 }else{
 a.src=t.url;a.playbackRate=parseFloat($('speed').value);
-a.onloadedmetadata=function(){if(at)a.currentTime=at;a.onloadedmetadata=null};
+a.onloadedmetadata=function(){if(cs()||at)a.currentTime=cs()+(at>0?at:0);var d=ce()-cs();$('seek').max=d>0?d:0;$('dur').textContent=fmt(d);a.onloadedmetadata=null};
 if(play)a.play().catch(function(){});
 }
 renderChapters();setPlayIcon()}
 
 function setTracks(list){
 stopTTS();a.pause();
-tracks.forEach(function(t){if(t.url)URL.revokeObjectURL(t.url)});
+tracks.forEach(function(t){if(t.url)URL.revokeObjectURL(t.url);if(t.cover)URL.revokeObjectURL(t.cover)});
 tracks=list;idx=-1;
 var p=st('pos'),start=0,at=0;
 if(p)tracks.forEach(function(t,k){if(t.key===p.n){start=k;at=p.s}});
 load(start,at,false);renderBms();
 $('msg').textContent=at?'Picked up where you left off: '+tracks[start].name+'.':''}
 
+/* ---- embedded chapters + cover art (MP4/M4B and MP3) ---- */
+async function rd(f,o,n){return new DataView(await f.slice(o,o+n).arrayBuffer())}
+function u64(v,o){return v.getUint32(o)*4294967296+v.getUint32(o+4)}
+function utf8(b){try{return new TextDecoder('utf-8').decode(b)}catch(e){return ''}}
+function imgBlob(u){
+if(u[0]===0xFF&&u[1]===0xD8)return new Blob([u],{type:'image/jpeg'});
+if(u[0]===0x89&&u[1]===0x50)return new Blob([u],{type:'image/png'});
+if(u[0]===0x47&&u[1]===0x49)return new Blob([u],{type:'image/gif'});
+if(u[0]===0x52&&u[1]===0x49)return new Blob([u],{type:'image/webp'});
+return null}
+async function mp4Boxes(f,start,end){
+var out=[],o=start;
+while(o+8<=end){
+var h=await rd(f,o,16),sz=h.getUint32(0),ty=String.fromCharCode(h.getUint8(4),h.getUint8(5),h.getUint8(6),h.getUint8(7)),hl=8;
+if(sz===1){sz=u64(h,8);hl=16}else if(sz===0)sz=end-o;
+if(sz<hl)break;
+out.push({t:ty,s:o+hl,e:Math.min(end,o+sz)});o+=sz}
+return out}
+function sub(bx,t){return bx.filter(function(b){return b.t===t})}
+async function metaKids(f,m){
+var v=await rd(f,m.s,4);
+return mp4Boxes(f,m.s+(v.getUint32(0)===0?4:0),m.e)}
+async function mp4Cover(f,mb){
+var metas=sub(mb,'meta'),ud=sub(mb,'udta')[0];
+if(ud)metas=metas.concat(sub(await mp4Boxes(f,ud.s,ud.e),'meta'));
+for(var i=0;i<metas.length;i++){
+var il=sub(await metaKids(f,metas[i]),'ilst')[0];if(!il)continue;
+var cv=sub(await mp4Boxes(f,il.s,il.e),'covr')[0];if(!cv)continue;
+var d=sub(await mp4Boxes(f,cv.s,cv.e),'data')[0];if(!d)continue;
+var b=imgBlob(new Uint8Array(await f.slice(d.s+8,d.e).arrayBuffer()));
+if(b)return b}
+return null}
+async function qtTrackChapters(f,tb){
+var md=sub(tb,'mdia')[0];if(!md)return [];
+var mdb=await mp4Boxes(f,md.s,md.e),mh=sub(mdb,'mdhd')[0],mi=sub(mdb,'minf')[0];
+if(!mh||!mi)return [];
+var mv=await rd(f,mh.s,32),scale=mv.getUint8(0)===1?mv.getUint32(20):mv.getUint32(12);
+var sb=sub(await mp4Boxes(f,mi.s,mi.e),'stbl')[0];if(!sb)return [];
+var st2=await mp4Boxes(f,sb.s,sb.e);
+var rdBox=async function(t){var b=sub(st2,t)[0];return b?new DataView(await f.slice(b.s,b.e).arrayBuffer()):null};
+var stts=await rdBox('stts'),stsz=await rdBox('stsz'),stsc=await rdBox('stsc'),stco=await rdBox('stco'),co64=null;
+if(!stco)co64=await rdBox('co64');
+if(!stts||!stsz||!stsc||(!stco&&!co64))return [];
+var cnt=stsz.getUint32(8),fixed=stsz.getUint32(4),sizes=[];
+for(var s=0;s<cnt;s++)sizes.push(fixed||stsz.getUint32(12+s*4));
+var times=[],tt=0,ne=stts.getUint32(4);
+for(var e=0;e<ne;e++){var c=stts.getUint32(8+e*8),d=stts.getUint32(12+e*8);for(var z=0;z<c;z++){times.push(tt/scale);tt+=d}}
+var co=co64||stco,nco=co.getUint32(4),offs=[];
+for(var c2=0;c2<nco;c2++)offs.push(co64?u64(co,8+c2*8):co.getUint32(8+c2*4));
+var nsc=stsc.getUint32(4),runs=[];
+for(var r=0;r<nsc;r++)runs.push({first:stsc.getUint32(8+r*12),per:stsc.getUint32(12+r*12)});
+var sOff=[],si=0;
+for(var ci=0;ci<offs.length&&si<cnt;ci++){
+var per=0;runs.forEach(function(x){if(x.first<=ci+1)per=x.per});
+var o2=offs[ci];
+for(var j=0;j<per&&si<cnt;j++){sOff.push(o2);o2+=sizes[si];si++}}
+var res=[];
+for(var m=0;m<cnt&&m<sOff.length;m++){
+if(sizes[m]<2)continue;
+var raw=new Uint8Array(await f.slice(sOff[m],sOff[m]+sizes[m]).arrayBuffer()),tl=(raw[0]<<8)|raw[1];
+var body=raw.slice(2,2+tl),txt;
+if(body.length>=2&&((body[0]===0xFE&&body[1]===0xFF)||(body[0]===0xFF&&body[1]===0xFE))){try{txt=new TextDecoder(body[0]===0xFE?'utf-16be':'utf-16le').decode(body.slice(2))}catch(e3){txt=''}}
+else txt=utf8(body);
+res.push({t:txt.trim(),s:times[m]})}
+return res}
+async function mp4Chapters(f,mb,out){
+/* 1. Nero "chpl" atom */
+var ud=sub(mb,'udta')[0];
+if(ud){
+var ch=sub(await mp4Boxes(f,ud.s,ud.e),'chpl')[0];
+if(ch){
+var buf=await f.slice(ch.s,ch.e).arrayBuffer(),v=new DataView(buf),u8=new Uint8Array(buf);
+var p=8,n=v.getUint8(p);p+=1;
+var res=[];
+for(var i=0;i<n&&p+9<=buf.byteLength;i++){
+var st=u64(v,p)/1e7;p+=8;var l=v.getUint8(p);p+=1;
+res.push({t:utf8(u8.slice(p,p+l)).trim(),s:st});p+=l}
+if(res.length>1){out.diag+=', chpl';return res}}}
+/* 2. QuickTime chapter text track (Apple/Audible style) */
+var traks=sub(mb,'trak'),info=[];
+for(var k=0;k<traks.length;k++){
+var tb=await mp4Boxes(f,traks[k].s,traks[k].e),tk=sub(tb,'tkhd')[0],id=0;
+if(tk){var tv=await rd(f,tk.s,24);id=tv.getUint8(0)===1?tv.getUint32(20):tv.getUint32(12)}
+var ref=sub(tb,'tref')[0],chapOf=[];
+if(ref){var rb=await mp4Boxes(f,ref.s,ref.e),cb=sub(rb,'chap')[0];
+if(cb){var cv=await rd(f,cb.s,cb.e-cb.s);for(var q=0;q+4<=cb.e-cb.s;q+=4)chapOf.push(cv.getUint32(q))}}
+var htype='',md=sub(tb,'mdia')[0];
+if(md){var hb=sub(await mp4Boxes(f,md.s,md.e),'hdlr')[0];if(hb){var hv=await rd(f,hb.s,16);htype=String.fromCharCode(hv.getUint8(8),hv.getUint8(9),hv.getUint8(10),hv.getUint8(11))}}
+info.push({id:id,tb:tb,chapOf:chapOf,h:htype})}
+out.diag+=', '+info.length+' tracks ('+info.map(function(x){return x.h}).join('/')+')';
+var target=0;
+info.forEach(function(x){if(x.chapOf.length&&!target)target=x.chapOf[0]});
+var cands=[];
+if(target)cands=info.filter(function(x){return x.id===target});
+info.forEach(function(x){if(x.h==='text'&&cands.indexOf(x)<0)cands.push(x)});
+for(var c=0;c<cands.length;c++){
+var r=await qtTrackChapters(f,cands[c].tb);
+if(r.length>1){out.diag+=', text-track';return r}}
+return []}
+async function mp4Info(f,out){
+var top=await mp4Boxes(f,0,f.size),moov=sub(top,'moov')[0];
+if(!moov){out.diag+=', no moov';return}
+var mb=await mp4Boxes(f,moov.s,moov.e);
+try{out.chapters=await mp4Chapters(f,mb,out)}catch(e){out.diag+=', chapter error: '+(e&&e.message||e)}
+try{out.cover=await mp4Cover(f,mb)}catch(e){}}
+function syncsafe(v,o){return (v.getUint8(o)<<21)|(v.getUint8(o+1)<<14)|(v.getUint8(o+2)<<7)|v.getUint8(o+3)}
+function id3text(u8,enc){
+if(!u8.length)return '';
+try{
+if(enc===0)return new TextDecoder('iso-8859-1').decode(u8).replace(/\0+$/,'').trim();
+if(enc===3)return utf8(u8).replace(/\0+$/,'').trim();
+var le=true,b=u8;
+if(enc===1&&b.length>=2){if(b[0]===0xFE&&b[1]===0xFF){le=false;b=b.slice(2)}else if(b[0]===0xFF&&b[1]===0xFE)b=b.slice(2)}
+if(enc===2)le=false;
+return new TextDecoder(le?'utf-16le':'utf-16be').decode(b).replace(/\0+$/,'').trim()
+}catch(e){return ''}}
+function mkTime(t){
+var p=String(t).trim().split(':').map(parseFloat),s=0;
+if(p.some(isNaN))return NaN;
+p.forEach(function(x){s=s*60+x});return s}
+function xmlTxt(s){return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').trim()}
+async function mp3Info(f,out){
+var hv=await rd(f,0,10);
+if(hv.getUint8(0)!==0x49||hv.getUint8(1)!==0x44||hv.getUint8(2)!==0x33){out.diag+=', no ID3 tag';return}
+var ver=hv.getUint8(3),size=syncsafe(hv,6);
+out.diag+=' ID3v2.'+ver;
+if(ver<3)return;
+var buf=await f.slice(10,10+size).arrayBuffer(),v=new DataView(buf),u8=new Uint8Array(buf),p=0,res=[],od=null;
+if(hv.getUint8(5)&0x40){var xs=ver===4?syncsafe(v,0):v.getUint32(0)+4;p=xs}
+while(p+10<=buf.byteLength){
+var id=String.fromCharCode(u8[p],u8[p+1],u8[p+2],u8[p+3]);
+if(!/^[A-Z0-9]{4}$/.test(id))break;
+var fs=ver===4?syncsafe(v,p+4):v.getUint32(p+4);
+var fb=p+10,fe=fb+fs;
+if(fs<=0||fe>buf.byteLength)break;
+if(id==='CHAP'){
+var q=fb;while(q<fe&&u8[q]!==0)q++;q++;
+var start=v.getUint32(q)/1000;q+=16;
+var title='';
+while(q+10<=fe){
+var sid=String.fromCharCode(u8[q],u8[q+1],u8[q+2],u8[q+3]);
+var sl=ver===4?syncsafe(v,q+4):v.getUint32(q+4);
+if(!/^[A-Z0-9]{4}$/.test(sid)||sl<=0||q+10+sl>fe)break;
+if(sid==='TIT2'&&!title)title=id3text(u8.slice(q+11,q+10+sl),u8[q+10]);
+q+=10+sl}
+res.push({t:title,s:start})}
+else if(id==='APIC'&&!out.cover){
+var z=fb+1;while(z<fe&&u8[z]!==0)z++;z+=2;
+var lim=Math.min(fe-4,z+800);
+for(var y=z;y<lim;y++){
+if((u8[y]===0xFF&&u8[y+1]===0xD8&&u8[y+2]===0xFF)||(u8[y]===0x89&&u8[y+1]===0x50&&u8[y+2]===0x4E&&u8[y+3]===0x47)){out.cover=imgBlob(u8.slice(y,fe));break}}}
+else if(id==='TXXX'&&!od){
+var tx=id3text(u8.slice(fb+1,fe),u8[fb]).replace(/\uFEFF/g,'');
+var zi=tx.indexOf('\0');
+if(zi>0&&/MediaMarkers/i.test(tx.slice(0,zi)))od=tx.slice(zi+1)}
+p=fe}
+res.sort(function(x,y){return x.s-y.s});
+if(res.length>1){out.chapters=res;out.diag+=', CHAP frames';return}
+if(od){
+var mk=od.match(/<Marker>[\s\S]*?<\/Marker>/g)||[],r2=[];
+mk.forEach(function(m){
+var nme=(m.match(/<Name>([\s\S]*?)<\/Name>/)||[])[1],tme=(m.match(/<Time>([\s\S]*?)<\/Time>/)||[])[1];
+var s=mkTime(tme);if(isFinite(s))r2.push({t:xmlTxt(nme||''),s:s})});
+r2.sort(function(x,y){return x.s-y.s});
+if(r2.length>1){out.chapters=r2;out.diag+=', OverDrive markers'}}}
+async function readInfo(f){
+var out={chapters:[],cover:null,diag:''};
+try{
+var h=new Uint8Array(await f.slice(0,12).arrayBuffer()),kind='',n=f.name||'';
+if(h[4]===0x66&&h[5]===0x74&&h[6]===0x79&&h[7]===0x70)kind='mp4';
+else if(h[0]===0x49&&h[1]===0x44&&h[2]===0x33)kind='mp3';
+else if(/\.(m4b|m4a|mp4|aac)$/i.test(n))kind='mp4';
+else if(/\.mp3$/i.test(n))kind='mp3';
+out.diag=kind||'unrecognized format';
+if(kind==='mp4')await mp4Info(f,out);else if(kind==='mp3')await mp3Info(f,out);
+out.chapters=out.chapters.filter(function(c){return isFinite(c.s)&&c.s>=0}).sort(function(x,y){return x.s-y.s});
+if(out.chapters.length<2)out.chapters=[]
+}catch(e){out.chapters=[];out.diag+=' (read error: '+(e&&e.message||e)+')'}
+return out}
+
 /* ---- loading files ---- */
-$('file').addEventListener('change',function(e){
+$('file').addEventListener('change',async function(e){
 var files=Array.prototype.slice.call(e.target.files).sort(function(x,y){return x.name.localeCompare(y.name,undefined,{numeric:true})});
+e.target.value='';
 if(!files.length)return;
 var ep=files.filter(function(f){return /\.epub$/i.test(f.name)})[0];
 if(ep){loadEpubTTS(ep);return}
-setTracks(files.map(function(f){var n=nm(f);return{name:n,key:n,url:URL.createObjectURL(f)}}));
-$('msg').textContent=files.length+' file'+(files.length>1?'s':'')+' loaded.'});
+$('msg').textContent='Reading chapters…';
+var list=[],found=0,diag='';
+for(var i=0;i<files.length;i++){
+var f=files[i],n=nm(f),url=URL.createObjectURL(f),inf=await readInfo(f),cl=inf.chapters,cov=inf.cover?URL.createObjectURL(inf.cover):null;
+diag=inf.diag;
+if(cl.length){
+found+=cl.length;
+cl.forEach(function(c,k){
+var title=c.t||('Chapter '+(k+1));
+list.push({name:(files.length>1?n+' · ':'')+String(k+1).padStart(2,'0')+' · '+title,key:n+' / '+String(k+1).padStart(2,'0')+' · '+title,url:url,cover:cov,start:c.s,end:k<cl.length-1?cl[k+1].s:null})})
+}else list.push({name:n,key:n,url:url,cover:cov})}
+setTracks(list);
+$('msg').textContent=found?(list.length+' chapters loaded.'):(files.length+' file'+(files.length>1?'s':'')+' loaded. No chapter markers found in '+(files.length>1?'these files':'this file')+(files.length===1&&diag?' ('+diag+')':'')+'.')});
 
 function chunk(bl){var r=[];
 bl.forEach(function(b){
@@ -306,29 +514,33 @@ a.addEventListener('play',setPlayIcon);
 a.addEventListener('pause',function(){setPlayIcon();savePos(true)});
 $('back').onclick=function(){
 if(tts()){var n=Math.max(0,sIdx-3);if(ttsOn)speakFrom(n);else{sIdx=n;prog()}}
-else a.currentTime=Math.max(0,a.currentTime-15)};
+else a.currentTime=Math.max(cs(),a.currentTime-15)};
 $('fwd').onclick=function(){
 if(tts()){var n=Math.min(tracks[idx].segs.length-1,sIdx+3);if(ttsOn)speakFrom(n);else{sIdx=n;prog()}}
-else a.currentTime=Math.min(a.duration||1e9,a.currentTime+30)};
+else{var lim=ce()||a.duration||1e9;a.currentTime=Math.min(lim,a.currentTime+30)}};
 $('prev').onclick=function(){
-var restart=tts()?sIdx>0:a.currentTime>3;
-if(restart){if(tts()){if(ttsOn)speakFrom(0);else{sIdx=0;prog()}}else a.currentTime=0}
+var restart=tts()?sIdx>0:rel()>3;
+if(restart){if(tts()){if(ttsOn)speakFrom(0);else{sIdx=0;prog()}}else a.currentTime=cs()}
 else load(idx-1,0,playing())};
 $('next').onclick=function(){load(idx+1,0,playing())};
 $('speed').onchange=function(){a.playbackRate=parseFloat(this.value);if(ttsOn)speakFrom(sIdx)};
 
 a.addEventListener('timeupdate',function(){
 if(tts())return;
-if(!seeking){$('seek').value=a.currentTime}
-$('cur').textContent=fmt(a.currentTime);savePos(false)});
+if(idx>=0&&tracks[idx].end!=null&&a.currentTime>=tracks[idx].end-0.05){
+if(idx<tracks.length-1){if(sleepEnd){sleepEnd=false;$('sleep').value='0';a.pause();load(idx+1,0,false);return}load(idx+1,-1,!a.paused)}
+else{a.pause()}
+return}
+if(!seeking){$('seek').value=rel()}
+$('cur').textContent=fmt(rel());savePos(false)});
 a.addEventListener('durationchange',function(){
 if(tts())return;
-$('seek').max=a.duration||0;$('dur').textContent=fmt(a.duration)});
+var d=ce()-cs();$('seek').max=d>0?d:0;$('dur').textContent=fmt(d)});
 $('seek').addEventListener('input',function(){seeking=true;$('cur').textContent=tts()?'Part '+(parseInt(this.value,10)+1):fmt(this.value)});
 $('seek').addEventListener('change',function(){
 seeking=false;
 if(tts()){var v=parseInt(this.value,10);if(ttsOn)speakFrom(v);else{sIdx=v;prog()}}
-else a.currentTime=parseFloat(this.value)});
+else a.currentTime=cs()+parseFloat(this.value)});
 
 a.addEventListener('ended',function(){
 if(sleepEnd){sleepEnd=false;$('sleep').value='0';return}
