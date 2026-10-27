@@ -128,10 +128,11 @@ li.ngh:first-child{border-top:0;margin-top:0}
 </div>
 </div>
 <div class="right">
-<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Notes for the current chapter</label><textarea id="noteBox" disabled placeholder="Write a note, then press Add note"></textarea><div class="ntrow"><button class="addn" id="addNote" disabled>Add note</button><span class="ntip">Saved with the chapter time and today's date. Ctrl+Enter also adds.</span></div><div class="ntrow" style="margin:10px 0 0"><button class="lnk on" id="nvCur" style="padding-left:0">This chapter</button><button class="lnk" id="nvAll">All chapters</button></div><ul id="noteList"><li class="empty">Select a book to add notes.</li></ul><div style="display:flex;flex-direction:column;align-items:flex-start;margin-top:8px"><button class="lnk" id="dlNotes" style="padding-left:0">Download notes for this book (.txt)</button><button class="lnk" id="dlNotesAll" style="padding-left:0">Download notes for all books (.txt)</button></div></div>
+<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Notes for the current chapter</label><textarea id="noteBox" disabled placeholder="Write a note, then press Add note"></textarea><div class="ntrow"><button class="addn" id="addNote" disabled>Add note</button><span class="ntip">Saved with the chapter time and today's date. Ctrl+Enter also adds.</span></div><div class="ntrow" style="margin:10px 0 0"><button class="lnk on" id="nvCur" style="padding-left:0">This chapter</button><button class="lnk" id="nvAll">All chapters</button></div><ul id="noteList"><li class="empty">Select a book to add notes.</li></ul><div style="display:none"><button class="lnk" id="dlNotes" style="padding-left:0">Download notes for this book (.txt)</button><button class="lnk" id="dlNotesAll" style="padding-left:0">Download notes for all books (.txt)</button></div></div>
 <div><h2 class="hd">Bookmarks</h2><ul id="bms"><li class="empty">No bookmarks yet.</li></ul></div>
-<div><h2 class="hd">Renamed a file?</h2><p class="ntip" style="margin:0 0 8px">Move the notes, bookmarks and your place from the old name to the book that is open now.</p><div class="ntrow"><select class="lnk" id="linkSel" aria-label="Earlier saved book"><option value="">Open a book first</option></select><button class="addn sm" id="linkBtn">Move to this book</button></div></div>
-<div><h2 class="hd">Back up your progress</h2><div class="grp" style="justify-content:flex-start;flex-direction:column;align-items:flex-start;gap:2px"><button class="lnk" id="saveProg" style="padding-left:0">Save everything (one file)</button><button class="lnk" id="saveBook" style="padding-left:0">Save this book only</button><button class="lnk" id="saveEach" style="padding-left:0">Save each book separately (.zip)</button><button class="lnk" id="loadBtn" style="padding-left:0">Restore from file(s)</button></div><p class="ntip" style="margin-top:6px">Notes, bookmarks, highlights and where you stopped. Restoring one book&#39;s file only replaces that book.</p><input id="loadProg" type="file" accept=".json,.zip,application/json,application/zip" multiple hidden></div>
+<div id="linkSec" hidden><h2 class="hd">Renamed a file?</h2><div class="ntrow"><select class="lnk" id="linkSel" aria-label="Earlier saved name"></select><button class="addn sm" id="linkBtn" title="Move notes, bookmarks and your place from the old name to the open book">Move here</button></div></div>
+<div><select class="lnk" id="dlMenu" aria-label="Download and backup" style="padding-left:0"><option value="">Download &amp; backup ▾</option><optgroup label="Notes"><option value="dlNotes">Notes for this book (.txt)</option><option value="dlNotesAll">Notes for all books (.txt)</option></optgroup><optgroup label="Progress"><option value="saveProg">Everything (one file)</option><option value="saveBook">This book only</option><option value="saveEach">Each book separately (.zip)</option></optgroup><optgroup label="Restore"><option value="loadBtn">Restore from file…</option></optgroup></select></div>
+<div style="display:none"><button id="saveProg">Save all</button><button id="saveBook">This book</button><button id="saveEach">Each book</button><button id="loadBtn">Restore</button><input id="loadProg" type="file" accept=".json,.zip,application/json,application/zip" multiple hidden></div>
 </div>
 </div>
 </div>
@@ -145,7 +146,7 @@ li.ngh:first-child{border-top:0;margin-top:0}
 <div id="viewSec"><h2 class="hd">View</h2><div class="grp" style="justify-content:flex-start;gap:8px"><button class="lnk" id="rSmall" aria-label="Smaller text">A−</button><button class="lnk" id="rBig" aria-label="Larger text">A+</button><button class="lnk" id="rFull" aria-label="Full screen">⛶ Full screen</button></div></div>
 <div id="hlTools"><h2 class="hd">Highlight</h2><div class="sw" id="sw" role="group" aria-label="Highlight color"></div><button class="pri" id="hlBtn" disabled>Highlight selected text</button></div>
 <div id="hlSec"><h2 class="hd">Highlights</h2><ul id="hlList"><li class="empty">No highlights yet.</li></ul></div>
-<div id="lnkSec" style="display:flex;flex-direction:column;align-items:flex-start"><button class="lnk" id="dlHl" style="padding-left:0">Download highlights</button><button class="lnk" id="dlBook" style="padding-left:0">Download notes &amp; highlights</button><button class="lnk" id="listenBtn" style="padding-left:0">Listen to this book</button></div>
+<div id="lnkSec" style="display:flex;flex-direction:column;align-items:flex-start"><select class="lnk" id="dlMenuB" aria-label="Download" style="padding-left:0"><option value="">Download ▾</option><option value="dlHl">Highlights (.txt)</option><option value="dlBook">Notes &amp; highlights (.txt)</option></select><div style="display:none"><button id="dlHl">Highlights</button><button id="dlBook">Notes</button></div><button class="lnk" id="listenBtn" style="padding-left:0">Listen to this book</button></div>
 <div hidden><div id="bookTitle"></div><button id="rPrev"></button><button id="rNext"></button></div>
 </aside>
 </div>
@@ -331,9 +332,9 @@ var pp=st('pos');if(pp&&map[pp.n]){pp.n=map[pp.n];st('pos',pp)}
 normNotes();st('notes',notes);st('bms',bms);st('bp',bp)}
 return moved}
 function fillLink(){
-var sel=$('linkSel');if(!sel)return;sel.innerHTML='';
+var sel=$('linkSel');if(!sel)return;sel.innerHTML='';$('linkSec').hidden=true;
 var ent=lib[cb];
-if(!ent){sel.innerHTML='<option value="">Open a book first</option>';return}
+if(!ent)return
 var all=collect(),mine=bidOf(ent.title),n=0,loaded={};
 lib.forEach(function(b){if(b!==ent)loaded[bidOf(b.title)]=1});
 Object.keys(all).sort(function(x,y){return cmpNum(all[x].title,all[y].title)}).forEach(function(id){
@@ -343,7 +344,7 @@ else if(loaded[id])return;
 var items=B.notes.length+B.bms.length,o=document.createElement('option');
 o.value=id;o.textContent=B.title+(id===mine?' (other file names)':'')+(items?' · '+items+' saved':'');
 sel.appendChild(o);n++});
-if(!n)sel.innerHTML='<option value="">Nothing to move</option>'}
+$('linkSec').hidden=!n}
 function openBook(i){
 if(i<0||i>=lib.length)return;
 if(cb>=0&&idx>=0){lib[cb].last={i:idx,at:curPos()};savePos(true)}
@@ -964,6 +965,8 @@ var dp=docs.filter(function(d){return d.scope!=='book'&&d.pos})[0],k=-1;
 if(dp)tracks.forEach(function(t,j){if(t.key===dp.pos.n)k=j});
 if(k>=0)load(k,dp.pos.s,false);
 $('msg').textContent='Progress restored for '+docs.length+(docs.length===1?' file.':' files.')+(tracks.length?'':' Now choose your files to continue where you left off.')});
+
+['dlMenu','dlMenuB'].forEach(function(id){$(id).onchange=function(){var v=this.value;this.value='';if(v)$(v).click()}});
 
 /* ---- tabs ---- */
 var anc=0;
