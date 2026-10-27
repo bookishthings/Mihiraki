@@ -128,9 +128,10 @@ li.ngh:first-child{border-top:0;margin-top:0}
 </div>
 </div>
 <div class="right">
-<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Notes for the current chapter</label><textarea id="noteBox" disabled placeholder="Write a note, then press Add note"></textarea><div class="ntrow"><button class="addn" id="addNote" disabled>Add note</button><span class="ntip">Saved with the chapter time and today's date. Ctrl+Enter also adds.</span></div><div class="ntrow" style="margin:10px 0 0"><button class="lnk on" id="nvCur" style="padding-left:0">This chapter</button><button class="lnk" id="nvAll">All chapters</button></div><ul id="noteList"><li class="empty">Select a book to add notes.</li></ul><button class="lnk" id="dlNotes" style="padding-left:0">Download all notes (.txt)</button></div>
+<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Notes for the current chapter</label><textarea id="noteBox" disabled placeholder="Write a note, then press Add note"></textarea><div class="ntrow"><button class="addn" id="addNote" disabled>Add note</button><span class="ntip">Saved with the chapter time and today's date. Ctrl+Enter also adds.</span></div><div class="ntrow" style="margin:10px 0 0"><button class="lnk on" id="nvCur" style="padding-left:0">This chapter</button><button class="lnk" id="nvAll">All chapters</button></div><ul id="noteList"><li class="empty">Select a book to add notes.</li></ul><div style="display:flex;flex-direction:column;align-items:flex-start;margin-top:8px"><button class="lnk" id="dlNotes" style="padding-left:0">Download notes for this book (.txt)</button><button class="lnk" id="dlNotesAll" style="padding-left:0">Download notes for all books (.txt)</button></div></div>
 <div><h2 class="hd">Bookmarks</h2><ul id="bms"><li class="empty">No bookmarks yet.</li></ul></div>
-<div><h2 class="hd">Back up your progress</h2><div class="grp" style="justify-content:flex-start"><button class="lnk" id="saveProg" style="padding-left:0">Save progress file</button><button class="lnk" id="loadBtn">Restore from file</button></div><input id="loadProg" type="file" accept=".json,application/json" hidden></div>
+<div><h2 class="hd">Renamed a file?</h2><p class="ntip" style="margin:0 0 8px">Move the notes, bookmarks and your place from the old name to the book that is open now.</p><div class="ntrow"><select class="lnk" id="linkSel" aria-label="Earlier saved book"><option value="">Open a book first</option></select><button class="addn sm" id="linkBtn">Move to this book</button></div></div>
+<div><h2 class="hd">Back up your progress</h2><div class="grp" style="justify-content:flex-start;flex-direction:column;align-items:flex-start;gap:2px"><button class="lnk" id="saveProg" style="padding-left:0">Save everything (one file)</button><button class="lnk" id="saveBook" style="padding-left:0">Save this book only</button><button class="lnk" id="saveEach" style="padding-left:0">Save each book separately (.zip)</button><button class="lnk" id="loadBtn" style="padding-left:0">Restore from file(s)</button></div><p class="ntip" style="margin-top:6px">Notes, bookmarks, highlights and where you stopped. Restoring one book&#39;s file only replaces that book.</p><input id="loadProg" type="file" accept=".json,.zip,application/json,application/zip" multiple hidden></div>
 </div>
 </div>
 </div>
@@ -144,7 +145,7 @@ li.ngh:first-child{border-top:0;margin-top:0}
 <div id="viewSec"><h2 class="hd">View</h2><div class="grp" style="justify-content:flex-start;gap:8px"><button class="lnk" id="rSmall" aria-label="Smaller text">A−</button><button class="lnk" id="rBig" aria-label="Larger text">A+</button><button class="lnk" id="rFull" aria-label="Full screen">⛶ Full screen</button></div></div>
 <div id="hlTools"><h2 class="hd">Highlight</h2><div class="sw" id="sw" role="group" aria-label="Highlight color"></div><button class="pri" id="hlBtn" disabled>Highlight selected text</button></div>
 <div id="hlSec"><h2 class="hd">Highlights</h2><ul id="hlList"><li class="empty">No highlights yet.</li></ul></div>
-<div id="lnkSec" style="display:flex;flex-direction:column;align-items:flex-start"><button class="lnk" id="dlHl" style="padding-left:0">Download highlights</button><button class="lnk" id="listenBtn" style="padding-left:0">Listen to this book</button></div>
+<div id="lnkSec" style="display:flex;flex-direction:column;align-items:flex-start"><button class="lnk" id="dlHl" style="padding-left:0">Download highlights</button><button class="lnk" id="dlBook" style="padding-left:0">Download notes &amp; highlights</button><button class="lnk" id="listenBtn" style="padding-left:0">Listen to this book</button></div>
 <div hidden><div id="bookTitle"></div><button id="rPrev"></button><button id="rNext"></button></div>
 </aside>
 </div>
@@ -159,6 +160,11 @@ var tracks=[],idx=-1,bms=[],notes={},sleepTimer=null,sleepEnd=false,lastSave=0,s
 var hasTTS='speechSynthesis' in window;
 function st(k,v){try{if(v===undefined){var r=localStorage.getItem('ab:'+k);return r?JSON.parse(r):null}localStorage.setItem('ab:'+k,JSON.stringify(v))}catch(e){return null}}
 bms=st('bms')||[];notes=st('notes')||{};normNotes();
+var bp=st('bp')||{},rbp=st('rbp')||{};
+function cleanTitle(t){return String(t||'').replace(/\s*\(read aloud\)\s*$/i,'').trim()}
+function bidOf(t){return cleanTitle(t).toLowerCase().replace(/[^a-z0-9]+/g,'')}
+function chapOf(key){key=String(key);var i=key.indexOf(' / ');return i<0?key:key.slice(i+3)}
+function bookOf(key){key=String(key);var i=key.indexOf(' / ');return i<0?key:key.slice(0,i)}
 
 function setCover(u){var c=document.querySelector('.cover');c.textContent='';
 if(u){var im=document.createElement('img');im.src=u;im.alt='';c.appendChild(im);c.classList.add('art')}
@@ -169,7 +175,7 @@ function ce(){var t=tracks[idx];return (t&&t.end!=null)?t.end:(a.duration||0)}
 function rel(){return Math.max(0,a.currentTime-cs())}
 function sameSrc(i){var t=tracks[i];return idx>=0&&idx!==i&&tracks[idx].url&&t.url&&tracks[idx].url===t.url&&a.getAttribute('src')===t.url}
 function curPos(){return tts()?sIdx:Math.floor(rel())}
-function savePos(force){var n=Date.now();if(idx<0||(!tts()&&rel()<=0)||(!force&&n-lastSave<3000))return;lastSave=n;if(lib[cb])lib[cb].last={i:idx,at:curPos()};st('pos',{n:tracks[idx].key,s:curPos()})}
+function savePos(force){var n=Date.now();if(idx<0||(!tts()&&rel()<=0)||(!force&&n-lastSave<3000))return;lastSave=n;if(lib[cb])lib[cb].last={i:idx,at:curPos()};st('pos',{n:tracks[idx].key,s:curPos()});if(lib[cb]){bp[lib[cb].title]={n:tracks[idx].key,s:curPos(),u:tts()?1:0,d:Date.now()};st('bp',bp)}}
 function fmt(s){s=Math.max(0,Math.floor(s||0));var h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
 return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')}
 function lab(u,s){return u?'part '+(s+1):fmt(s)}
@@ -278,15 +284,79 @@ var s=$('bookSelA');s.innerHTML='';
 if(!lib.length){var o0=document.createElement('option');o0.value='';o0.textContent='Select a book';s.appendChild(o0);return}
 lib.forEach(function(b,i){var o=document.createElement('option');o.value=String(i);o.textContent=b.title;s.appendChild(o)});
 s.value=String(cb)}
+function hasOwnData(entry){
+var cur={};entry.tracks.forEach(function(t){cur[t.key]=1});
+if(Object.keys(notes).some(function(k){return cur[k]}))return true;
+if(bms.some(function(m){return cur[m.n]}))return true;
+var q=bp[entry.title];return !!(q&&cur[q.n])}
+function mapKeys(orphans,tracks){
+var map={},cur=tracks.map(function(t){return t.key});
+var split=function(keys){var c=[],p=[];keys.forEach(function(k){(k.indexOf(' / ')>=0?c:p).push(k)});return {c:c,p:p}};
+var o=split(orphans),c=split(cur);
+var op=o.p.slice().sort(cmpNum),cp=c.p.slice().sort(cmpNum);
+if(op.length&&op.length===cp.length)op.forEach(function(k,i){map[k]=cp[i]});
+var pre=function(arr){var u={};arr.forEach(function(k){u[bookOf(k)]=1});return Object.keys(u).sort(cmpNum)};
+var po=pre(o.c),pc=pre(c.c),pm={};
+if(po.length&&po.length===pc.length)po.forEach(function(x,i){pm[x]=pc[i]});
+o.c.forEach(function(k){
+var nk=(pm[bookOf(k)]!==undefined)?pm[bookOf(k)]+' / '+chapOf(k):null;
+if(nk&&cur.indexOf(nk)>=0){map[k]=nk;return}
+if(po.length===1){var cand=cur.filter(function(x){return x.indexOf(' / ')>=0&&chapOf(x)===chapOf(k)});if(cand.length===1)map[k]=cand[0]}});
+return map}
+/* carry notes, bookmarks and the saved place over from an old file name to the loaded one */
+function relink(entry,bids,dry){
+var title=cleanTitle(entry.title),wantU=(entry.tracks[0]&&entry.tracks[0].segs)?1:0,cur={},others={};
+entry.tracks.forEach(function(t){cur[t.key]=1});
+lib.forEach(function(b){if(b!==entry)b.tracks.forEach(function(t){others[t.key]=1})});
+var ok=function(k){return !cur[k]&&!others[k]};
+var inB=function(t){return bids.indexOf(bidOf(t))>=0};
+var fits=function(e,book){return e.s!=null&&(e.u?1:0)===wantU&&inB(book)};
+var orph={};
+Object.keys(notes).forEach(function(k){if(ok(k))notes[k].forEach(function(e){if(fits(e,e.b||bookOf(k)))orph[k]=1})});
+bms.forEach(function(m){if(ok(m.n)&&fits(m,m.b||bookOf(m.n)))orph[m.n]=1});
+var bpOld=Object.keys(bp).filter(function(t){return t!==entry.title&&inB(t)&&(bp[t].u?1:0)===wantU&&ok(bp[t].n)});
+bpOld.forEach(function(t){orph[bp[t].n]=1});
+var own=bp[entry.title];if(own&&ok(own.n)&&(own.u?1:0)===wantU)orph[own.n]=1;
+var map=mapKeys(Object.keys(orph),entry.tracks),moved=0;
+Object.keys(notes).forEach(function(k){
+var nk=map[k];if(!nk)return;
+var keep=[];
+notes[k].forEach(function(e){if(fits(e,e.b||bookOf(k))){moved++;if(!dry){e.b=title;(notes[nk]=notes[nk]||[]).push(e)}}else keep.push(e)});
+if(!dry){if(keep.length)notes[k]=keep;else delete notes[k]}});
+bms.forEach(function(m){var nk=map[m.n];if(nk&&fits(m,m.b||bookOf(m.n))){moved++;if(!dry){m.n=nk;m.b=title}}});
+if(own&&map[own.n]){moved++;if(!dry)own.n=map[own.n]}
+bpOld.forEach(function(t){var v=bp[t],nk=map[v.n];if(nk&&(dry||!bp[entry.title])){moved++;if(!dry){bp[entry.title]={n:nk,s:v.s,u:v.u,d:v.d};delete bp[t]}}});
+if(moved&&!dry){
+var pp=st('pos');if(pp&&map[pp.n]){pp.n=map[pp.n];st('pos',pp)}
+normNotes();st('notes',notes);st('bms',bms);st('bp',bp)}
+return moved}
+function fillLink(){
+var sel=$('linkSel');if(!sel)return;sel.innerHTML='';
+var ent=lib[cb];
+if(!ent){sel.innerHTML='<option value="">Open a book first</option>';return}
+var all=collect(),mine=bidOf(ent.title),n=0,loaded={};
+lib.forEach(function(b){if(b!==ent)loaded[bidOf(b.title)]=1});
+Object.keys(all).sort(function(x,y){return cmpNum(all[x].title,all[y].title)}).forEach(function(id){
+var B=all[id];if(!hasData(B))return;
+if(id===mine){if(!relink(ent,[id],true))return}
+else if(loaded[id])return;
+var items=B.notes.length+B.bms.length,o=document.createElement('option');
+o.value=id;o.textContent=B.title+(id===mine?' (other file names)':'')+(items?' · '+items+' saved':'');
+sel.appendChild(o);n++});
+if(!n)sel.innerHTML='<option value="">Nothing to move</option>'}
 function openBook(i){
 if(i<0||i>=lib.length)return;
 if(cb>=0&&idx>=0){lib[cb].last={i:idx,at:curPos()};savePos(true)}
 stopTTS();a.pause();
 cb=i;tracks=lib[i].tracks;idx=-1;
+var mv=hasOwnData(lib[i])?0:relink(lib[i],[bidOf(lib[i].title)],false);
 var start=0,at=0,L=lib[i].last,p=st('pos');
-if(L){start=L.i;at=L.at}else if(p)tracks.forEach(function(t,k){if(t.key===p.n){start=k;at=p.s}});
+var q=bp[lib[i].title];
+if(L){start=L.i;at=L.at}else if(q&&tracks.some(function(t){return t.key===q.n})){tracks.forEach(function(t,k){if(t.key===q.n){start=k;at=q.s}})}else if(p)tracks.forEach(function(t,k){if(t.key===p.n){start=k;at=p.s}});
 load(start,at,false);renderBms();renderBooks();
-$('msg').textContent=at?'Picked up where you left off: '+tracks[start].name+'.':''}
+var base=at?'Picked up where you left off: '+tracks[start].name+'.':'';
+if(mv)base+=(base?' ':'')+'Carried over '+mv+' saved item'+(mv===1?'':'s')+' from this book\'s earlier file name.';
+$('msg').textContent=base;fillLink()}
 function setTracks(list,title){
 var ex=-1;lib.forEach(function(b,i){if(b.tracks===list)ex=i});
 if(ex<0){lib.push({title:title||'Untitled book',tracks:list,last:null});ex=lib.length-1}
@@ -629,8 +699,8 @@ async function loadEpubTTS(f){
 if(!hasTTS){$('msg').textContent='This browser has no read-aloud support.';return}
 if(!window.JSZip){$('msg').textContent='Could not load the EPUB reader. Check your connection and reload.';return}
 $('msg').textContent='Reading EPUB…';
-try{var r=await parseEpub(f);setTracks(r.list,r.book+' (read aloud)');
-$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters).'+(r.hasCover?'':' No cover image found in this EPUB.')}
+try{var r=await parseEpub(f);var sy=syncEpub(r);openBook(sy.li);
+$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters). It is also in your Ebook tab.'+(r.hasCover?'':' No cover image found in this EPUB.')}
 catch(err){$('msg').textContent='Could not read that EPUB. DRM-protected books will not work.'}}
 
 /* ---- voices ---- */
@@ -693,7 +763,7 @@ else if(v!=='0'){sleepTimer=setTimeout(function(){a.pause();stopTTS();savePos(tr
 
 $('addBm').onclick=function(){
 if(idx<0)return;
-bms.push({n:tracks[idx].key,s:curPos(),u:tts()?1:0});st('bms',bms);renderBms()};
+bms.push({n:tracks[idx].key,s:curPos(),u:tts()?1:0,b:cleanTitle(lib[cb]?lib[cb].title:bookOf(tracks[idx].key))});st('bms',bms);renderBms()};
 
 document.addEventListener('keydown',function(e){
 if(e.target.tagName==='TEXTAREA'||!$('paneB').hidden)return;
@@ -713,7 +783,7 @@ if(idx<0)return;
 var v=$('noteBox').value.trim();
 if(!v){$('msg').textContent='Write something first, then add the note.';return}
 var k=tracks[idx].key,at=(draftAt&&draftAt.k===k)?draftAt:{s:curPos(),u:tts()?1:0};
-(notes[k]=notes[k]||[]).push({x:v,d:Date.now(),s:at.s,u:at.u});
+(notes[k]=notes[k]||[]).push({x:v,d:Date.now(),s:at.s,u:at.u,b:cleanTitle(lib[cb]?lib[cb].title:bookOf(k)),m:(at.u&&tracks[idx].segs)?tracks[idx].segs.length:null});
 st('notes',notes);draftAt=null;$('noteBox').value='';renderNotes();
 $('msg').textContent='Note added at '+lab(at.u,at.s)+'.'}
 $('addNote').onclick=addNote;
@@ -730,7 +800,7 @@ $('nvCur').onclick=function(){setNoteView('cur')};
 $('nvAll').onclick=function(){setNoteView('all')};
 function noteStamp(n,t){
 var p='';
-if(n.s!=null)p=(n.u&&t&&t.segs)?'part '+(n.s+1)+' of '+t.segs.length:lab(n.u,n.s);
+if(n.s!=null){var tot=(t&&t.segs)?t.segs.length:n.m;p=(n.u&&tot)?'part '+(n.s+1)+' of '+tot:lab(n.u,n.s)}
 var d=n.d?new Date(n.d).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
 return [p,d].filter(Boolean).join(' · ')||'Earlier note'}
 function noteItem(n,arr,i,ti){
@@ -777,37 +847,127 @@ setTimeout(function(){URL.revokeObjectURL(u)},1000);
 $('msg').textContent=label+' saved.'
 }).catch(function(){$('msg').textContent='Could not save. Try again.'})}
 
-$('dlNotes').onclick=function(){
-var names=Object.keys(notes);
-if(!names.length){$('msg').textContent='No notes to download yet.';return}
-var order=tracks.map(function(t){return t.key});
-names.sort(function(x,y){var i=order.indexOf(x),j=order.indexOf(y);if(i<0)i=1e9;if(j<0)j=1e9;return (i-j)||x.localeCompare(y,undefined,{numeric:true})});
-var txt=names.map(function(n){return n+'\n'+'-'.repeat(n.length)+'\n'+notes[n].map(function(e){return '['+noteStamp(e)+']\n'+e.x}).join('\n\n')}).join('\n\n\n')+'\n';
-saveFile('audiobook-notes.txt',txt,'text/plain','Notes')};
+function collect(){
+var B={};
+var get=function(title){var id=bidOf(title);return B[id]||(B[id]={id:id,title:cleanTitle(title),notes:[],bms:[],hls:[],hlm:{},pos:{},rpos:{}})};
+Object.keys(notes).forEach(function(k){(notes[k]||[]).forEach(function(n){get(n.b||bookOf(k)).notes.push({k:k,e:n})})});
+bms.forEach(function(m){get(m.b||bookOf(m.n)).bms.push(m)});
+Object.keys(hl).forEach(function(t){if((hl[t]||[]).length){var g=get(t);g.hls=g.hls.concat(hl[t]);g.hlm[t]=hl[t]}});
+Object.keys(bp).forEach(function(t){get(t).pos[t]=bp[t]});
+Object.keys(rbp).forEach(function(t){get(t).rpos[t]=rbp[t]});
+return B}
+function hasData(B){return !!(B.notes.length||B.hls.length||B.bms.length||Object.keys(B.pos).length||Object.keys(B.rpos).length)}
+function hasText(B){return !!(B.notes.length||B.hls.length||B.bms.length)}
+function cmpNum(x,y){return String(x).localeCompare(String(y),undefined,{numeric:true})}
+function safeName(t,suffix){return (cleanTitle(t).replace(/[^\w\- ]+/g,'').trim().slice(0,50)||'book')+' '+suffix}
+function bookText(B){
+var out=[B.title,'='.repeat(B.title.length)],ch={};
+var slot=function(c){return ch[c]||(ch[c]={n:[],h:[],b:[]})};
+B.notes.forEach(function(x){slot(chapOf(x.k)).n.push(x)});
+B.hls.forEach(function(h){slot(h.c).h.push(h)});
+B.bms.forEach(function(m){slot(chapOf(m.n)).b.push(m)});
+var names=Object.keys(ch).sort(cmpNum);
+if(!names.length)out.push('','Nothing saved for this book yet.');
+names.forEach(function(c){
+var g=ch[c];out.push('',c,'-'.repeat(c.length));
+g.n.sort(function(x,y){return (x.e.s==null?-1:x.e.s)-(y.e.s==null?-1:y.e.s)||(x.e.d||0)-(y.e.d||0)}).forEach(function(x){out.push('['+noteStamp(x.e)+'] '+String(x.e.x).replace(/\n/g,'\n    '))});
+g.b.forEach(function(m){out.push('[Bookmark at '+lab(m.u,m.s)+']')});
+g.h.sort(function(x,y){return (x.p-y.p)||(x.s-y.s)}).forEach(function(h){out.push('• '+h.t)})});
+return out.join('\n')+'\n'}
+function curTitle(){
+if(!$('paneB').hidden&&book)return book.book;
+if(lib[cb])return lib[cb].title;
+if(book)return book.book;
+return null}
+function dlBookNotes(title){
+if(!title){$('msg').textContent='Choose a book first.';return}
+var B=collect()[bidOf(title)];
+if(!B||!hasText(B)){$('msg').textContent='No notes or highlights for this book yet.';return}
+saveFile(safeName(B.title,'notes.txt'),bookText(B),'text/plain','Notes')}
+$('dlNotes').onclick=function(){dlBookNotes(curTitle())};
+$('dlBook').onclick=function(){dlBookNotes(book?book.book:curTitle())};
+$('dlNotesAll').onclick=function(){
+var all=collect(),ids=Object.keys(all).filter(function(i){return hasText(all[i])}).sort(function(x,y){return cmpNum(all[x].title,all[y].title)});
+if(!ids.length){$('msg').textContent='No notes or highlights to download yet.';return}
+saveFile('all-books-notes.txt',ids.map(function(i){return bookText(all[i])}).join('\n\n\n'),'text/plain','Notes for all books')};
 
+function saveBlob(name,blob,label){
+var u=URL.createObjectURL(blob),l=document.createElement('a');
+l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();
+setTimeout(function(){URL.revokeObjectURL(u)},1000);
+$('msg').textContent=label+' saved.'}
+function bookJson(B){
+var nts={};B.notes.forEach(function(x){(nts[x.k]=nts[x.k]||[]).push(x.e)});
+return {app:'audiobook-player',v:4,scope:'book',id:B.id,title:B.title,bms:B.bms,notes:nts,hl:B.hlm,bp:B.pos,rbp:B.rpos}}
 $('saveProg').onclick=function(){
 savePos(true);
-saveFile('audiobook-progress.json',JSON.stringify({app:'audiobook-player',v:3,bms:bms,notes:notes,pos:st('pos'),hl:hl,rpos:st('rpos')},null,2),'application/json','Progress file')};
+saveFile('audiobook-progress-all.json',JSON.stringify({app:'audiobook-player',v:4,scope:'all',bms:bms,notes:notes,pos:st('pos'),hl:hl,rpos:st('rpos'),bp:bp,rbp:rbp},null,2),'application/json','Progress file for everything')};
+$('saveBook').onclick=function(){
+var t=curTitle();if(!t){$('msg').textContent='Choose a book first.';return}
+savePos(true);
+var B=collect()[bidOf(t)];
+if(!B||!hasData(B)){$('msg').textContent='Nothing saved for this book yet.';return}
+saveFile(safeName(B.title,'progress.json'),JSON.stringify(bookJson(B),null,2),'application/json','Progress for this book')};
+$('saveEach').onclick=function(){
+if(!window.JSZip){$('msg').textContent='The zip tool did not load. Reconnect and reload, or use Save this book only.';return}
+savePos(true);
+var all=collect(),ids=Object.keys(all).filter(function(i){return hasData(all[i])});
+if(!ids.length){$('msg').textContent='Nothing saved yet.';return}
+var z=new JSZip(),used={};
+ids.forEach(function(i){
+var B=all[i],base=safeName(B.title,'').trim(),n=base,c=2;
+while(used[n])n=base+' '+(c++);used[n]=1;
+z.file(n+' progress.json',JSON.stringify(bookJson(B),null,2));
+z.file(n+' notes.txt',bookText(B))});
+z.generateAsync({type:'blob'}).then(function(b){saveBlob('audiobook-progress-by-book.zip',b,'One file per book')},function(){$('msg').textContent='Could not make the zip. Try again.'})};
 
+function applyData(d){
+if(d.scope==='book'){
+var id=d.id||bidOf(d.title);
+Object.keys(notes).forEach(function(k){notes[k]=(notes[k]||[]).filter(function(x){return bidOf(x.b||bookOf(k))!==id});if(!notes[k].length)delete notes[k]});
+bms=bms.filter(function(m){return bidOf(m.b||bookOf(m.n))!==id});
+[hl,bp,rbp].forEach(function(o){Object.keys(o).forEach(function(t){if(bidOf(t)===id)delete o[t]})})
+}else{bms=[];notes={};hl={};bp={};rbp={}}
+if(Array.isArray(d.bms))bms=bms.concat(d.bms);
+if(d.notes&&typeof d.notes==='object')Object.keys(d.notes).forEach(function(k){
+var v=d.notes[k];if(typeof v==='string')v=v.trim()?[{x:v,d:0,s:null,u:0}]:[];
+if(Array.isArray(v)&&v.length)notes[k]=(notes[k]||[]).concat(v)});
+if(d.hl&&typeof d.hl==='object')Object.keys(d.hl).forEach(function(t){hl[t]=d.hl[t]});
+if(d.bp&&typeof d.bp==='object')Object.keys(d.bp).forEach(function(t){bp[t]=d.bp[t]});
+if(d.rbp&&typeof d.rbp==='object')Object.keys(d.rbp).forEach(function(t){rbp[t]=d.rbp[t]});
+if(d.scope!=='book'){if(d.pos)st('pos',d.pos);if(d.rpos)st('rpos',d.rpos)}}
+$('linkBtn').onclick=function(){
+var ent=lib[cb],id=$('linkSel').value;
+if(!ent||!id){$('msg').textContent='Open the renamed book first, then choose its earlier name.';return}
+var n=relink(ent,[id],false);
+$('msg').textContent=n?'Moved '+n+' saved item'+(n===1?'':'s')+' to this book.':'Could not match that book\'s chapters to this one.';
+renderBms();renderNotes();fillLink()};
 $('loadBtn').onclick=function(){$('loadProg').click()};
-$('loadProg').addEventListener('change',function(e){
-var f=e.target.files[0];e.target.value='';if(!f)return;
-var r=new FileReader();
-r.onload=function(){try{
-var d=JSON.parse(r.result);if(!d||d.app!=='audiobook-player')throw 0;
-bms=Array.isArray(d.bms)?d.bms:[];notes=(d.notes&&typeof d.notes==='object')?d.notes:{};normNotes();
-st('bms',bms);st('notes',notes);if(d.pos)st('pos',d.pos);if(d.hl&&typeof d.hl==='object'){hl=d.hl;st('hl',hl)}if(d.rpos)st('rpos',d.rpos);refreshReader();
-renderBms();
-renderNotes();
-var k=-1;if(d.pos)tracks.forEach(function(t,j){if(t.key===d.pos.n)k=j});
-if(k>=0)load(k,d.pos.s,false);
-$('msg').textContent='Progress restored.'+(tracks.length?'':' Now choose your files to continue where you left off.');
-}catch(err){$('msg').textContent='That file is not a progress file from this player.'}};
-r.readAsText(f)});
+$('loadProg').addEventListener('change',async function(e){
+var files=[].slice.call(e.target.files);e.target.value='';if(!files.length)return;
+var docs=[];
+try{
+for(var i=0;i<files.length;i++){
+var f=files[i];
+if(/\.zip$/i.test(f.name)){
+if(!window.JSZip)throw 0;
+var z=await JSZip.loadAsync(f),names=Object.keys(z.files).filter(function(n){return /\.json$/i.test(n)&&!z.files[n].dir});
+for(var j=0;j<names.length;j++)docs.push(JSON.parse(await z.file(names[j]).async('string')))
+}else docs.push(JSON.parse(await f.text()))}
+docs=docs.filter(function(d){return d&&d.app==='audiobook-player'});
+if(!docs.length)throw 0
+}catch(err){$('msg').textContent='That file is not a progress file from this player.';return}
+docs.forEach(applyData);
+normNotes();st('bms',bms);st('notes',notes);st('hl',hl);st('bp',bp);st('rbp',rbp);
+refreshReader();renderBms();renderNotes();
+var dp=docs.filter(function(d){return d.scope!=='book'&&d.pos})[0],k=-1;
+if(dp)tracks.forEach(function(t,j){if(t.key===dp.pos.n)k=j});
+if(k>=0)load(k,dp.pos.s,false);
+$('msg').textContent='Progress restored for '+docs.length+(docs.length===1?' file.':' files.')+(tracks.length?'':' Now choose your files to continue where you left off.')});
 
 /* ---- tabs ---- */
 var anc=0;
-function tab(w){var A=w==='a';document.querySelector('main').classList.toggle('wide',!A);if(!$('paneB').hidden&&book)anc=anchor();$('paneA').hidden=!A;$('paneB').hidden=A;$('actsA').hidden=!A;$('actsB').hidden=A;$('tabA').setAttribute('aria-selected',A);$('tabB').setAttribute('aria-selected',!A);if(!A)closePick();if(!A&&book)showChapter(curCh,anc)}
+function tab(w){var A=w==='a';document.querySelector('main').classList.toggle('wide',!A);if(!$('paneB').hidden&&book)anc=anchor();$('paneA').hidden=!A;$('paneB').hidden=A;$('actsA').hidden=!A;$('actsB').hidden=A;$('tabA').setAttribute('aria-selected',A);$('tabB').setAttribute('aria-selected',!A);if(!A)closePick();if(!A&&!book&&ebooks.length)openEbook(ebooks.length-1);else if(!A&&book)showChapter(curCh,anc)}
 $('tabA').onclick=function(){tab('a')};$('tabB').onclick=function(){tab('b')};
 
 /* ---- ebook reader + highlights ---- */
@@ -844,7 +1004,7 @@ var p=document.createElement('p');p.dataset.p=i;
 paintP(p,t,rs.filter(function(h){return h.p===i}).sort(function(x,y){return x.s-y.s}));
 page.appendChild(p)});
 page.scrollTop=0;page.scrollLeft=0;$('rChap').value=String(curCh);pend=null;updHlBtn();
-st('rpos',{b:bk,c:ch.name});ebooks.forEach(function(e){if(e.r===book)e.ch=curCh});
+st('rpos',{b:bk,c:ch.name});rbp[bk]=ch.name;st('rbp',rbp);ebooks.forEach(function(e){if(e.r===book)e.ch=curCh});
 var tp=(scrollP!=null)?page.querySelector('[data-p="'+scrollP+'"]'):null;
 if(tp){if(isFs())goSpread(Math.floor(tp.offsetLeft/stepW()));else tp.scrollIntoView({block:'center'})}
 if(wantLast){wantLast=false;goSpread(1e6)}
@@ -905,8 +1065,18 @@ book=r;bk=r.book;
 $('rChap').innerHTML='';
 r.list.forEach(function(c,k){var o=document.createElement('option');o.value=String(k);o.textContent=c.name;$('rChap').appendChild(o)});
 $('bookTitle').textContent=r.book;$('reader').hidden=false;
-var rp=st('rpos'),ci=ebooks[i].ch!=null?ebooks[i].ch:((rp&&rp.b===bk)?chIdx(rp.c):0);
+var rp=st('rpos'),ci=ebooks[i].ch!=null?ebooks[i].ch:((rbp[bk]&&chIdx(rbp[bk])>=0)?chIdx(rbp[bk]):((rp&&rp.b===bk)?chIdx(rp.c):0));
 showChapter(ci>=0?ci:0);renderHl();renderEbooks(i)}
+function syncEpub(r){
+var ei=-1,li=-1;
+ebooks.forEach(function(e,i){if(e.r.book===r.book)ei=i});
+if(ei<0){ebooks.push({r:r,ch:null});ei=ebooks.length-1}
+var rr=ebooks[ei].r,lt=r.book+' (read aloud)';
+lib.forEach(function(b,i){if(b.title===lt)li=i});
+if(li<0){lib.push({title:lt,tracks:rr.list,last:null});li=lib.length-1}
+renderBooks();
+var cur=-1;ebooks.forEach(function(e,i){if(e.r===book)cur=i});renderEbooks(cur);
+return {li:li,ei:ei}}
 $('bookSelB').onchange=function(){if(this.value!=='')openEbook(parseInt(this.value,10))};
 $('bookFile').addEventListener('change',async function(e){
 var f=e.target.files[0];e.target.value='';if(!f)return;
@@ -914,9 +1084,9 @@ if(!window.JSZip){$('msg').textContent='Could not load the EPUB reader. Check yo
 $('msg').textContent='Reading EPUB…';
 try{
 var r=await parseEpub(f);
-ebooks.push({r:r,ch:null});
-openEbook(ebooks.length-1);
-$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters).'+(r.hasCover?'':' No cover image found in this EPUB.')
+var sy=syncEpub(r);
+openEbook(sy.ei);
+$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters). It is also in your Audiobook tab for read aloud.'+(r.hasCover?'':' No cover image found in this EPUB.')
 }catch(err){$('msg').textContent='Could not read that EPUB. DRM-protected books will not work.'}});
 
 $('rChap').onchange=function(){showChapter(parseInt(this.value,10))};
