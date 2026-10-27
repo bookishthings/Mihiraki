@@ -60,14 +60,6 @@ li button.item{flex:1;text-align:left;padding:10px 2px;word-break:break-word;fon
 li.on button.item{color:var(--acc);font-weight:700}
 li .x{color:var(--mute);font-size:13px}
 .empty{color:var(--mute);padding:10px 2px;font-size:14px}
-.ntrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
-.addn{background:var(--acc);color:var(--accink);border-radius:8px;padding:9px 18px;font-size:15px;cursor:pointer}
-.addn:disabled{opacity:.45;cursor:default}
-.ntip{color:var(--mute);font-size:13px}
-li.nt{display:block;padding:10px 2px}
-.ntm{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--mute);font-size:13px}
-.ntm button.stamp{color:var(--acc);text-decoration:underline dotted;text-underline-offset:4px;text-align:left;padding:2px 0}
-.ntx{white-space:pre-wrap;word-break:break-word;font-size:15px;margin-top:4px}
 #reader{display:flex;gap:28px;height:calc(100vh - 215px);min-height:480px}
 #sheet{position:relative;flex:1;min-width:0;background:var(--paper);border-radius:6px;box-shadow:0 14px 32px rgba(43,29,74,.2);padding:34px 40px 58px;display:flex;flex-direction:column}
 #page{flex:1;min-height:0;position:relative;overflow:hidden;column-count:2;column-gap:44px;column-fill:auto;color:var(--pt);font:400 1.05rem/1.75 Georgia,'Iowan Old Style',serif;text-align:justify;hyphens:auto}
@@ -124,7 +116,7 @@ li.nt{display:block;padding:10px 2px}
 </div>
 </div>
 <div class="right">
-<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Notes for the current chapter</label><textarea id="noteBox" disabled placeholder="Write a note, then press Add note"></textarea><div class="ntrow"><button class="addn" id="addNote" disabled>Add note</button><span class="ntip">Saved with the chapter time and today's date. Ctrl+Enter also adds.</span></div><ul id="noteList"><li class="empty">Select a book to add notes.</li></ul><button class="lnk" id="dlNotes" style="padding-left:0">Download all notes (.txt)</button></div>
+<div><h2 class="hd">Notes</h2><label class="lbl" for="noteBox" id="noteFor">Note for the current chapter</label><textarea id="noteBox" disabled placeholder="Thoughts, quotes or questions for this chapter"></textarea><button class="lnk" id="dlNotes" style="padding-left:0">Download all notes (.txt)</button></div>
 <div><h2 class="hd">Bookmarks</h2><ul id="bms"><li class="empty">No bookmarks yet.</li></ul></div>
 <div><h2 class="hd">Back up your progress</h2><div class="grp" style="justify-content:flex-start"><button class="lnk" id="saveProg" style="padding-left:0">Save progress file</button><button class="lnk" id="loadBtn">Restore from file</button></div><input id="loadProg" type="file" accept=".json,application/json" hidden></div>
 </div>
@@ -154,7 +146,7 @@ var a=document.getElementById('a'),$=function(i){return document.getElementById(
 var tracks=[],idx=-1,bms=[],notes={},sleepTimer=null,sleepEnd=false,lastSave=0,sIdx=0,ttsOn=false,tok=0,seeking=false,voices=[];
 var hasTTS='speechSynthesis' in window;
 function st(k,v){try{if(v===undefined){var r=localStorage.getItem('ab:'+k);return r?JSON.parse(r):null}localStorage.setItem('ab:'+k,JSON.stringify(v))}catch(e){return null}}
-bms=st('bms')||[];notes=st('notes')||{};normNotes();
+bms=st('bms')||[];notes=st('notes')||{};
 
 function setCover(u){var c=document.querySelector('.cover');c.textContent='';
 if(u){var im=document.createElement('img');im.src=u;im.alt='';c.appendChild(im);c.classList.add('art')}
@@ -245,7 +237,7 @@ var keep=!tracks[i].segs&&sameSrc(i);
 stopTTS();if(!keep)a.pause();
 idx=i;var t=tracks[i],isT=!!t.segs;
 $('title').textContent=t.name;setCover(t.cover||null);
-$('noteFor').textContent='Notes for '+t.name;$('noteBox').disabled=false;$('addNote').disabled=false;renderNotes();
+$('noteFor').textContent='Note for '+t.name;$('noteBox').disabled=false;$('noteBox').value=notes[t.key]||'';
 $('voiceWrap').hidden=!isT;
 $('back').textContent=isT?'−3':'−15';$('fwd').textContent=isT?'+3':'+30';
 $('back').setAttribute('aria-label',isT?'Back 3 parts':'Back 15 seconds');
@@ -507,55 +499,6 @@ while(cur.length>400){r.push(cur.slice(0,400));cur=cur.slice(400)}});
 if(cur.trim())r.push(cur.trim())});
 return r}
 
-function zget(zip,path){
-var f=zip.file(path);if(f)return f;
-try{f=zip.file(decodeURIComponent(path));if(f)return f}catch(e){}
-var lp=path.toLowerCase(),found=null;
-zip.forEach(function(rp,e){if(!found&&!e.dir&&rp.toLowerCase()===lp)found=e});
-return found}
-function rpath(href,from){
-var dir=from.indexOf('/')>=0?from.slice(0,from.lastIndexOf('/')+1):'';
-var p=new URL(String(href).split('#')[0],'http://x/'+dir).pathname.slice(1);
-try{return decodeURIComponent(p)}catch(e){return p}}
-function imime(p,mt){
-if(/^image\//.test(mt||''))return mt;
-var e=((p.match(/\.(\w+)$/)||[])[1]||'').toLowerCase();
-return {png:'image/png',gif:'image/gif',svg:'image/svg+xml',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg'}[e]||'image/jpeg'}
-async function extractCover(zip,opf,opfPath){
-var items=[].slice.call(opf.querySelectorAll('manifest > item')),byId={};
-items.forEach(function(it){byId[it.getAttribute('id')]=it});
-var imgRe=/\.(jpe?g|png|gif|webp|svg)$/i;
-var isImg=function(i){return /^image\//.test(i.getAttribute('media-type')||'')||imgRe.test(i.getAttribute('href')||'')};
-var hp=function(i){return rpath(i.getAttribute('href'),opfPath)};
-async function blobAt(path,mt){
-var f=zget(zip,path);if(!f)return null;
-var buf=await f.async('arraybuffer');if(buf.byteLength<200)return null;
-return URL.createObjectURL(new Blob([buf],{type:imime(path,mt)}))}
-async function pageAt(path){
-var f=zget(zip,path);if(!f)return null;
-var d=new DOMParser().parseFromString(await f.async('string'),'text/html');
-var el=d.querySelector('img,image');if(!el)return null;
-var src=el.getAttribute('src')||el.getAttribute('xlink:href')||el.getAttribute('href');if(!src)return null;
-if(/^data:/i.test(src)){var bl=await (await fetch(src)).blob();return URL.createObjectURL(bl)}
-return blobAt(rpath(src,path))}
-async function pathAt(path,mt){return (imgRe.test(path)||/^image\//.test(mt||''))?blobAt(path,mt):pageAt(path)}
-var steps=[
-async function(){var it=items.filter(function(i){return /(^|\s)cover-image(\s|$)/.test(i.getAttribute('properties')||'')})[0];return it&&pathAt(hp(it),it.getAttribute('media-type'))},
-async function(){var m=opf.querySelector('metadata meta[name="cover"]');if(!m)return null;var c=m.getAttribute('content')||'',it=byId[c]||items.filter(function(i){return i.getAttribute('href')===c})[0];return it&&pathAt(hp(it),it.getAttribute('media-type'))},
-async function(){var g=opf.querySelector('guide > reference[type="cover"]');return g&&pathAt(rpath(g.getAttribute('href'),opfPath))},
-async function(){var it=items.filter(function(i){return isImg(i)&&/cover/i.test((i.getAttribute('id')||'')+' '+(i.getAttribute('href')||''))})[0];return it&&pathAt(hp(it),it.getAttribute('media-type'))},
-async function(){
-var refs=[].slice.call(opf.querySelectorAll('spine > itemref')).slice(0,3);
-for(var k=0;k<refs.length;k++){var it=byId[refs[k].getAttribute('idref')];if(!it||isImg(it))continue;var u=await pageAt(hp(it));if(u)return u}
-return null},
-async function(){
-var best=null,sz=0;
-items.forEach(function(i){if(!isImg(i))return;var f=zget(zip,hp(i)),n=(f&&f._data&&f._data.uncompressedSize)||0;if(n>sz){sz=n;best=i}});
-return (best&&sz>20000)?pathAt(hp(best),best.getAttribute('media-type')):null}
-];
-for(var k=0;k<steps.length;k++){try{var u=await steps[k]();if(u)return u}catch(e){}}
-return null}
-
 async function parseEpub(f){
 var zip=await JSZip.loadAsync(f);
 var xml=function(s){return new DOMParser().parseFromString(s,'application/xml')};
@@ -565,7 +508,15 @@ var opf=xml(await zip.file(opfPath).async('string'));
 var base=opfPath.indexOf('/')>=0?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
 var man={};
 opf.querySelectorAll('manifest > item').forEach(function(it){man[it.getAttribute('id')]=it.getAttribute('href')});
-var cover=await extractCover(zip,opf,opfPath);
+var cover=null;
+try{
+var items=[].slice.call(opf.querySelectorAll('manifest > item')),ci=null;
+ci=items.filter(function(it){return /(^|\s)cover-image(\s|$)/.test(it.getAttribute('properties')||'')})[0];
+if(!ci){var mc=opf.querySelector('metadata meta[name="cover"]');if(mc){var cid=mc.getAttribute('content');ci=items.filter(function(it){return it.getAttribute('id')===cid})[0]}}
+if(!ci)ci=items.filter(function(it){return /^image\//.test(it.getAttribute('media-type')||'')&&/cover/i.test((it.getAttribute('id')||'')+(it.getAttribute('href')||''))})[0];
+if(ci){var cf=zip.file(decodeURIComponent(new URL(ci.getAttribute('href'),'http://x/'+base).pathname.slice(1)));
+if(cf){var cbuf=await cf.async('arraybuffer');cover=URL.createObjectURL(new Blob([cbuf],{type:ci.getAttribute('media-type')||'image/jpeg'}))}}
+}catch(e){cover=null}
 var te=opf.getElementsByTagNameNS('*','title')[0];
 var book=(te&&te.textContent.trim())||f.name.replace(/\.epub$/i,'');
 var refs=[].slice.call(opf.querySelectorAll('spine > itemref')),out=[];
@@ -586,14 +537,14 @@ var ht=h?tx(h).slice(0,60):'';var title=!ht?('Section '+(out.length+1)):(/^[\dIV
 var name=String(out.length+1).padStart(2,'0')+' · '+title;
 out.push({name:name,key:book+' / '+name,segs:chunk(blocks),blocks:blocks,cover:cover})}
 if(!out.length)throw new Error('empty');
-return {book:book,list:out,hasCover:!!cover}}
+return {book:book,list:out}}
 
 async function loadEpubTTS(f){
 if(!hasTTS){$('msg').textContent='This browser has no read-aloud support.';return}
 if(!window.JSZip){$('msg').textContent='Could not load the EPUB reader. Check your connection and reload.';return}
 $('msg').textContent='Reading EPUB…';
 try{var r=await parseEpub(f);setTracks(r.list,r.book+' (read aloud)');
-$('msg').textContent=r.book+' loaded ('+r.list.length+' sections).'+(r.hasCover?'':' No cover image found in this EPUB.')}
+$('msg').textContent=r.book+' loaded ('+r.list.length+' sections).'}
 catch(err){$('msg').textContent='Could not read that EPUB. DRM-protected books will not work.'}}
 
 /* ---- voices ---- */
@@ -666,47 +617,10 @@ if(e.key==='ArrowLeft')$('back').click();
 if(e.key==='ArrowRight')$('fwd').click()});
 
 /* ---- notes, export, backup ---- */
-var draftAt=null;
 $('noteBox').addEventListener('input',function(){
-if(!this.value){draftAt=null;return}
-if(draftAt==null&&idx>=0)draftAt={k:tracks[idx].key,s:curPos(),u:tts()?1:0}});
-$('noteBox').addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();addNote()}});
-function addNote(){
-if(idx<0)return;
-var v=$('noteBox').value.trim();
-if(!v){$('msg').textContent='Write something first, then add the note.';return}
-var k=tracks[idx].key,at=(draftAt&&draftAt.k===k)?draftAt:{s:curPos(),u:tts()?1:0};
-(notes[k]=notes[k]||[]).push({x:v,d:Date.now(),s:at.s,u:at.u});
-st('notes',notes);draftAt=null;$('noteBox').value='';renderNotes();
-$('msg').textContent='Note added at '+lab(at.u,at.s)+'.'}
-$('addNote').onclick=addNote;
-function normNotes(){
-Object.keys(notes).forEach(function(k){
-var v=notes[k];
-if(typeof v==='string')v=v.trim()?[{x:v,d:0,s:null,u:0}]:[];
-if(!Array.isArray(v)||!v.length){delete notes[k];return}
-notes[k]=v.filter(function(n){return n&&typeof n.x==='string'&&n.x.trim()});
-if(!notes[k].length)delete notes[k]})}
-function noteStamp(n){
-var p=(n.s==null)?'':lab(n.u,n.s);
-var d=n.d?new Date(n.d).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
-return [p,d].filter(Boolean).join(' · ')||'Earlier note'}
-function renderNotes(){
-var ul=$('noteList');ul.innerHTML='';
-if(idx<0)return;
-var k=tracks[idx].key,arr=notes[k]||[];
-if(!arr.length){ul.innerHTML='<li class="empty">No notes for this chapter yet.</li>';return}
-arr.forEach(function(n,i){
-var li=document.createElement('li');li.className='nt';
-var m=document.createElement('div');m.className='ntm';
-var st1=document.createElement(n.s==null?'span':'button');
-st1.textContent=noteStamp(n);
-if(n.s!=null){st1.className='stamp';st1.setAttribute('aria-label','Go to '+lab(n.u,n.s));st1.onclick=function(){load(idx,n.s,true)}}
-var x=document.createElement('button');x.className='x';x.textContent='Remove';x.setAttribute('aria-label','Remove note');
-x.onclick=function(){arr.splice(i,1);if(!arr.length)delete notes[k];st('notes',notes);renderNotes()};
-m.appendChild(st1);m.appendChild(x);
-var t=document.createElement('div');t.className='ntx';t.textContent=n.x;
-li.appendChild(m);li.appendChild(t);ul.appendChild(li)})}
+if(idx<0)return;var n=tracks[idx].key;
+if(this.value)notes[n]=this.value;else delete notes[n];
+st('notes',notes)});
 
 function saveFile(name,text,mime,label){
 var get=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);
@@ -725,7 +639,7 @@ var names=Object.keys(notes);
 if(!names.length){$('msg').textContent='No notes to download yet.';return}
 var order=tracks.map(function(t){return t.key});
 names.sort(function(x,y){var i=order.indexOf(x),j=order.indexOf(y);if(i<0)i=1e9;if(j<0)j=1e9;return (i-j)||x.localeCompare(y,undefined,{numeric:true})});
-var txt=names.map(function(n){return n+'\n'+'-'.repeat(n.length)+'\n'+notes[n].map(function(e){return '['+noteStamp(e)+']\n'+e.x}).join('\n\n')}).join('\n\n\n')+'\n';
+var txt=names.map(function(n){return n+'\n'+'-'.repeat(n.length)+'\n'+notes[n]}).join('\n\n')+'\n';
 saveFile('audiobook-notes.txt',txt,'text/plain','Notes')};
 
 $('saveProg').onclick=function(){
@@ -738,10 +652,10 @@ var f=e.target.files[0];e.target.value='';if(!f)return;
 var r=new FileReader();
 r.onload=function(){try{
 var d=JSON.parse(r.result);if(!d||d.app!=='audiobook-player')throw 0;
-bms=Array.isArray(d.bms)?d.bms:[];notes=(d.notes&&typeof d.notes==='object')?d.notes:{};normNotes();
+bms=Array.isArray(d.bms)?d.bms:[];notes=(d.notes&&typeof d.notes==='object')?d.notes:{};
 st('bms',bms);st('notes',notes);if(d.pos)st('pos',d.pos);if(d.hl&&typeof d.hl==='object'){hl=d.hl;st('hl',hl)}if(d.rpos)st('rpos',d.rpos);refreshReader();
 renderBms();
-renderNotes();
+if(idx>=0)$('noteBox').value=notes[tracks[idx].key]||'';
 var k=-1;if(d.pos)tracks.forEach(function(t,j){if(t.key===d.pos.n)k=j});
 if(k>=0)load(k,d.pos.s,false);
 $('msg').textContent='Progress restored.'+(tracks.length?'':' Now choose your files to continue where you left off.');
@@ -859,7 +773,7 @@ try{
 var r=await parseEpub(f);
 ebooks.push({r:r,ch:null});
 openEbook(ebooks.length-1);
-$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters).'+(r.hasCover?'':' No cover image found in this EPUB.')
+$('msg').textContent=r.book+' loaded ('+r.list.length+' chapters).'
 }catch(err){$('msg').textContent='Could not read that EPUB. DRM-protected books will not work.'}});
 
 $('rChap').onchange=function(){showChapter(parseInt(this.value,10))};
